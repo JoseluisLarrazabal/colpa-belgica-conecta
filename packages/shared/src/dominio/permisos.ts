@@ -4,6 +4,7 @@ import { ROLES, TRANSICIONES, type Accion, type Rol } from './estados';
 const CAPACIDADES = {
   INICIAR_SESION: ROLES,
   ELABORAR_PUBLICACION: ['PUBLICADOR'],
+  CONSULTAR_PANEL: ['PUBLICADOR', 'APROBADOR'], // Tabla 2.64: GET /panel/*
   GESTIONAR_CUENTAS: ['ADMIN_TECNICO'],
   CONSULTAR_AUDITORIA: ['ADMIN_TECNICO'],
 } as const satisfies Record<string, readonly Rol[]>;

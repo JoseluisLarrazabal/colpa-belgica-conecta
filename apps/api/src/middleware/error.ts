@@ -5,6 +5,7 @@ export class ErrorHttp extends Error {
   constructor(
     readonly status: number,
     mensaje: string,
+    readonly extra: object = {},
   ) {
     super(mensaje);
   }
@@ -14,7 +15,7 @@ export class ErrorHttp extends Error {
 export const manejarError: ErrorRequestHandler = (err, _req, res, next) => {
   if (res.headersSent) return next(err);
   if (err instanceof ErrorHttp) {
-    res.status(err.status).json({ error: err.message });
+    res.status(err.status).json({ error: err.message, ...err.extra });
     return;
   }
   const status = err?.status ?? err?.statusCode;

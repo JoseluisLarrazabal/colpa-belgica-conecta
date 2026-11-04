@@ -2,14 +2,22 @@ import { Router } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import {
   asignarRolSchema,
+  consultarAuditoriaSchema,
   crearCuentaSchema,
+  devolverSchema,
   editarCuentaSchema,
+  editarFichaSchema,
+  fichaSchema,
   idParamSchema,
+  imagenParamSchema,
+  listarPublicacionesSchema,
   loginSchema,
+  registrarImagenSchema,
 } from '@colpa/shared';
 import { health } from '../controllers/health.controller';
 import { login, logout } from '../controllers/auth.controller';
 import * as cuentas from '../controllers/cuentas.controller';
+import * as pub from '../controllers/publicaciones.controller';
 import { autenticar, requiereRol } from '../middleware/auth';
 import { validar } from '../middleware/validar';
 
@@ -32,9 +40,61 @@ export function crearApiV1({ loginMax = 10 }: OpcionesApi = {}) {
   r.post('/auth/login', limiteLogin, validar(loginSchema), login);
   r.post('/auth/logout', autenticar, logout);
 
+  // Panel (Tabla 2.64). El rol se comprueba aquí; la propiedad por unidad, en el servicio.
+  const panel = Router();
+  panel.use(autenticar);
+  const idP = validar(idParamSchema, 'params');
+  const elabora = requiereRol('ELABORAR_PUBLICACION');
+  panel.get(
+    '/publicaciones',
+    requiereRol('CONSULTAR_PANEL'),
+    validar(listarPublicacionesSchema, 'query'),
+    pub.listar,
+  );
+  panel.get('/publicaciones/:id', requiereRol('CONSULTAR_PANEL'), idP, pub.obtener);
+  panel.post('/publicaciones', elabora, validar(fichaSchema), pub.crear);
+  panel.patch('/publicaciones/:id', elabora, idP, validar(editarFichaSchema), pub.editar);
+  panel.delete('/publicaciones/:id', elabora, idP, pub.descartar);
+  panel.post(
+    '/publicaciones/:id/enviar',
+    requiereRol('ENVIAR_REVISION'),
+    idP,
+    pub.accion('ENVIAR_REVISION'),
+  );
+  panel.post('/publicaciones/:id/publicar', requiereRol('PUBLICAR'), idP, pub.accion('PUBLICAR'));
+  panel.post(
+    '/publicaciones/:id/devolver',
+    requiereRol('DEVOLVER'),
+    idP,
+    validar(devolverSchema),
+    pub.accion('DEVOLVER'),
+  );
+  panel.post('/publicaciones/:id/archivar', requiereRol('ARCHIVAR'), idP, pub.accion('ARCHIVAR'));
+  panel.post('/publicaciones/:id/imagenes/firma', elabora, idP, pub.firmaImagen);
+  panel.post(
+    '/publicaciones/:id/imagenes',
+    elabora,
+    idP,
+    validar(registrarImagenSchema),
+    pub.registrarImagen,
+  );
+  panel.delete(
+    '/publicaciones/:id/imagenes/:imagenId',
+    elabora,
+    validar(imagenParamSchema, 'params'),
+    pub.eliminarImagen,
+  );
+  r.use('/panel', panel);
+
   const admin = Router();
   admin.use(autenticar, requiereRol('GESTIONAR_CUENTAS'));
   admin.get('/unidades', cuentas.unidades);
+  admin.get(
+    '/auditoria',
+    requiereRol('CONSULTAR_AUDITORIA'),
+    validar(consultarAuditoriaSchema, 'query'),
+    pub.consultarAuditoria,
+  );
   admin.get('/funcionarios', cuentas.listar);
   admin.post('/funcionarios', validar(crearCuentaSchema), cuentas.crear);
   admin.patch(
