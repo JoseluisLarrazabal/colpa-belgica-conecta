@@ -3,6 +3,8 @@ import { prisma } from '../src/db';
 import {
   api,
   app,
+  auditoriaDe,
+  auth,
   borradorDirecto,
   crearFuncionario,
   crearUnidad,
@@ -13,6 +15,7 @@ import {
 
 const a = app();
 const L = '/api/v1/publicaciones';
+const P = '/api/v1/panel/publicaciones';
 let unidadId: string;
 let autorId: string;
 let tPub: string;
@@ -35,6 +38,26 @@ async function publicada(ficha: object = COMUNICADO) {
   await api.accion(a, tPub, id, 'enviar');
   await api.accion(a, tApr, id, 'publicar');
   return id;
+}
+
+/** Flujo real con imágenes y observaciones: crear, enviar, devolver, re-enviar, publicar. Devuelve id y URLs en orden. */
+async function publicadaConImagenes() {
+  const id = (await api.crear(a, tPub, COMUNICADO)).body.id as string;
+  const urls: string[] = [];
+  for (let i = 0; i < 2; i++) {
+    const publicId = (await request(a).post(`${P}/${id}/imagenes/firma`).set(auth(tPub))).body
+      .public_id as string;
+    const r = await request(a)
+      .post(`${P}/${id}/imagenes`)
+      .set(auth(tPub))
+      .send({ publicId, formato: 'jpg' });
+    urls.push(r.body.url as string);
+  }
+  await api.accion(a, tPub, id, 'enviar');
+  await api.accion(a, tApr, id, 'devolver', { observaciones: 'interno' });
+  await api.accion(a, tPub, id, 'enviar');
+  await api.accion(a, tApr, id, 'publicar');
+  return { id, urls };
 }
 const ids = (res: { body: { datos: { id: string }[] } }) => res.body.datos.map((p) => p.id);
 
@@ -88,6 +111,15 @@ describe('RF-14 Destacar comunicado sanitario o de emergencia', () => {
     expect((await api.editar(a, tPub, id, { destacado: true })).status).toBe(409);
   });
 
+  it('editar otro campo no desmarca un comunicado destacado y audita una sola edición', async () => {
+    const id = (await api.crear(a, tPub, { ...COMUNICADO, destacado: true })).body.id as string;
+    expect((await api.editar(a, tPub, id, { titulo: 'Nuevo título' })).status).toBe(200);
+    const p = (await api.obtener(a, tPub, id)).body;
+    expect(p.destacado).toBe(true);
+    expect(p.titulo).toBe('Nuevo título');
+    expect((await auditoriaDe(id)).filter((r) => r.accion === 'EDITAR')).toHaveLength(1);
+  });
+
   it('un valor no booleano responde 400', async () => {
     expect((await api.crear(a, tPub, { ...COMUNICADO, destacado: 'si' })).status).toBe(400);
   });
@@ -108,15 +140,9 @@ describe('RF-15 Consultar publicaciones de salud', () => {
   });
 
   it('expone solo campos aptos para el ciudadano y las imágenes en orden', async () => {
-    const p = await crear({ observaciones: 'interno', detalle: 'Texto' }); // imágenes con URL fija
-    await prisma.imagen.createMany({
-      data: [
-        { publicacionId: p.id, url: 'https://x/2.jpg', publicId: 'b', orden: 1 },
-        { publicacionId: p.id, url: 'https://x/1.jpg', publicId: 'a', orden: 0 },
-      ],
-    });
+    const { id, urls } = await publicadaConImagenes();
     const lista = await request(a).get(L);
-    const detalle = await request(a).get(`${L}/${p.id}`);
+    const detalle = await request(a).get(`${L}/${id}`);
     for (const item of [lista.body.datos[0], detalle.body.publicacion]) {
       expect(Object.keys(item).sort()).toEqual(
         [
@@ -141,7 +167,7 @@ describe('RF-15 Consultar publicaciones de salud', () => {
         ].sort(),
       );
       expect(item.unidad).toBe('Dirección de Salud');
-      expect(item.imagenes).toEqual(['https://x/1.jpg', 'https://x/2.jpg']);
+      expect(item.imagenes).toEqual(urls);
     }
     expect(Object.keys(detalle.body).sort()).toEqual(['generadoEn', 'publicacion']);
   });
@@ -173,6 +199,44 @@ describe('RF-15 Consultar publicaciones de salud', () => {
       'Cercana',
       'Lejana',
     ]);
+  });
+
+  it('vigencia en el borde: a las 22:00 del 4-nov en La Paz (UTC ya es 5-nov) aún vale el día 4', async () => {
+    const dia4 = new Date('2026-11-04T00:00:00Z');
+    const vig = await crear({
+      titulo: 'Fin hoy',
+      fechaInicio: new Date('2026-11-01T00:00:00Z'),
+      fechaFin: dia4,
+    });
+    const venc = await crear({
+      titulo: 'Fin ayer',
+      fechaInicio: new Date('2026-11-01T00:00:00Z'),
+      fechaFin: new Date('2026-11-03T00:00:00Z'),
+    });
+    const sinFin = await crear({ titulo: 'Solo hoy', fechaInicio: dia4 });
+    // Solo se falsea Date: el cliente de BD necesita los temporizadores reales.
+    jest.useFakeTimers({
+      now: new Date('2026-11-05T02:00:00Z'),
+      doNotFake: [
+        'nextTick',
+        'setImmediate',
+        'clearImmediate',
+        'setTimeout',
+        'clearTimeout',
+        'setInterval',
+        'clearInterval',
+        'queueMicrotask',
+        'performance',
+        'hrtime',
+      ],
+    });
+    try {
+      const res = await request(a).get(L);
+      expect(ids(res).sort()).toEqual([vig.id, sinFin.id].sort());
+      expect(ids(res)).not.toContain(venc.id);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('el detalle de una PUBLICADO responde 200 aunque su fecha haya pasado', async () => {

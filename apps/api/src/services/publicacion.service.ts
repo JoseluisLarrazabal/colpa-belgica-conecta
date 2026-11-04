@@ -45,6 +45,7 @@ export function aDto<T extends Publicacion>(p: T) {
 /** Columnas de la ficha en el orden de Prisma, a partir de una ficha ya validada. */
 const aColumnas = (f: FichaInput) => ({
   ...f,
+  destacado: f.destacado ?? false,
   fechaInicio: aFecha(f.fechaInicio)!,
   fechaFin: aFecha(f.fechaFin),
   hora: aHora(f.hora),

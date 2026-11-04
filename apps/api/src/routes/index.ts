@@ -28,7 +28,7 @@ export interface OpcionesApi {
   publicoMax?: number;
 }
 
-export function crearApiV1({ loginMax = 10, publicoMax = 300 }: OpcionesApi = {}) {
+export function crearApiV1({ loginMax = 10, publicoMax = 1000 }: OpcionesApi = {}) {
   const r = Router();
   r.get('/health', health);
 
@@ -43,7 +43,8 @@ export function crearApiV1({ loginMax = 10, publicoMax = 300 }: OpcionesApi = {}
   r.post('/auth/login', limiteLogin, validar(loginSchema), login);
   r.post('/auth/logout', autenticar, logout);
 
-  // shortcut: memoria por proceso; usar store compartido si hay >1 réplica
+  // shortcut: memoria por proceso (usar store compartido si hay >1 réplica); límite por IP, y las operadoras móviles
+  // comparten IP pública (CGNAT), por eso es holgado: subirlo o limitar por otra clave si hay falsos 429.
   const limitePublico = rateLimit({
     windowMs: 15 * 60_000,
     limit: publicoMax,

@@ -24,7 +24,7 @@ const base = {
   lugar: texto(150),
   poblacionObjetivo: texto(150),
   requisitos: z.string().trim().min(1),
-  destacado: z.boolean().default(false), // RF-14
+  destacado: z.boolean().optional(), // RF-14; sin default: bajo .partial() Zod 4 lo aplicaría y la edición desmarcaría la ficha
 };
 
 /** Campos propios de un tipo (se suman a `base`). Agregar un tipo = una entrada aquí. */
