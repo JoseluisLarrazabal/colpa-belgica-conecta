@@ -10,3 +10,6 @@ if (!base.endsWith('_test')) {
     `DATABASE_URL debe apuntar a una base que termine en "_test" (actual: "${base}")`,
   );
 }
+
+// Secreto solo para pruebas (≥ 32 caracteres); en local/CI no hace falta definirlo.
+process.env.JWT_SECRET ??= 'secreto-solo-para-pruebas-0123456789abcdef';

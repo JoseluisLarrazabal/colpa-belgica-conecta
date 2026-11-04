@@ -2,13 +2,13 @@
 
 Generado el 2026-11-04 por `pnpm progreso`.
 
-**Avance: 0/35 RF con al menos un test verde y ninguno fallido (0.0%).** Solo cuentan los tests de `apps/*`.
+**Avance: 3/35 RF con al menos un test verde y ninguno fallido (8.6%).** Solo cuentan los tests de `apps/*`.
 
 | RF | Módulo | Título | Estado | Tests verdes |
 |----|--------|--------|--------|--------------|
-| RF-01 | M01 | Iniciar sesión | Pendiente | 0 |
-| RF-02 | M01 | Gestionar cuentas de funcionarios | Pendiente | 0 |
-| RF-03 | M01 | Asignar rol a una cuenta | Pendiente | 0 |
+| RF-01 | M01 | Iniciar sesión | Con test verde | 16 |
+| RF-02 | M01 | Gestionar cuentas de funcionarios | Con test verde | 9 |
+| RF-03 | M01 | Asignar rol a una cuenta | Con test verde | 7 |
 | RF-04 | M01 | Elaborar publicación con ficha estructurada | Pendiente | 0 |
 | RF-05 | M01 | Adjuntar imágenes a la publicación | Pendiente | 0 |
 | RF-06 | M01 | Enviar publicación a revisión | Pendiente | 0 |
