@@ -35,7 +35,6 @@ describe('RF-03 Asignar rol a una cuenta', () => {
       expect(res.body.rol).toBe(nuevo);
       expect(JSON.stringify(res.body)).not.toMatch(/hash/i);
       expect((await prisma.funcionario.findUniqueOrThrow({ where: { id: f.id } })).rol).toBe(nuevo);
-      await new Promise((r) => setTimeout(r, 1100)); // iat tiene resolución de segundos
       const t = await token(a, 'otro');
       const lista = await request(a)
         .get('/api/v1/admin/funcionarios')

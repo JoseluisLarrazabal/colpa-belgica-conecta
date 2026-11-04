@@ -102,7 +102,7 @@ model Funcionario {
   activo               Boolean        @default(true)
   intentosFallidos     Int            @default(0) @map("intentos_fallidos") @db.SmallInt
   bloqueadoHasta       DateTime?      @map("bloqueado_hasta") @db.Timestamptz(6)
-  sesionesValidasDesde DateTime?      @map("sesiones_validas_desde") @db.Timestamptz(6)
+  versionSesion        Int            @default(0) @map("version_sesion")
   creadoEn             DateTime       @default(now()) @map("creado_en") @db.Timestamptz(6)
   actualizadoEn        DateTime       @updatedAt @map("actualizado_en") @db.Timestamptz(6)
 

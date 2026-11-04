@@ -167,9 +167,21 @@ describe('RF-02 Gestionar cuentas de funcionarios', () => {
     expect((await patch(false)).status).toBe(200);
     expect((await patch(true)).status).toBe(200);
     expect((await lista(viejo)).status).toBe(401);
-    await new Promise((r) => setTimeout(r, 1100)); // iat tiene resolución de segundos
     const nuevo = await token(a, 'pub');
     expect(nuevo).toBeTruthy();
+    expect((await request(a).post('/api/v1/auth/logout').set(auth(nuevo))).status).toBe(204);
+  });
+
+  it('cambiar el rol e iniciar sesión en el mismo segundo: el token nuevo sirve y el viejo da 401', async () => {
+    const f = await crearFuncionario(unidadId, 'PUBLICADOR', 'pub');
+    const viejo = await token(a, 'pub');
+    const r = await request(a)
+      .put(`${URL}/${f.id}/rol`)
+      .set(auth(admin))
+      .send({ rol: 'APROBADOR' });
+    expect(r.status).toBe(200);
+    const nuevo = await token(a, 'pub');
+    expect((await request(a).post('/api/v1/auth/logout').set(auth(viejo))).status).toBe(401);
     expect((await request(a).post('/api/v1/auth/logout').set(auth(nuevo))).status).toBe(204);
   });
 });

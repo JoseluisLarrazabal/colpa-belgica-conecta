@@ -17,6 +17,7 @@ interface FilaLogin {
   rol: Rol;
   unidad_id: string;
   intentos_fallidos: number;
+  version_sesion: number;
 }
 
 export async function iniciarSesion(identificadorCuenta: string, contrasena: string) {
@@ -27,7 +28,7 @@ export async function iniciarSesion(identificadorCuenta: string, contrasena: str
     WHERE identificador_cuenta = ${identificadorCuenta} AND activo
       AND (bloqueado_hasta IS NULL OR bloqueado_hasta <= now())
       AND intentos_fallidos < ${MAX_INTENTOS}
-    RETURNING id, nombre_completo, hash_contrasena, rol, unidad_id, intentos_fallidos`;
+    RETURNING id, nombre_completo, hash_contrasena, rol, unidad_id, intentos_fallidos, version_sesion`;
   // Sin fila (inexistente, inactiva o bloqueada) se verifica un hash falso para igualar el tiempo.
   const coincide = await argon2.verify(f?.hash_contrasena ?? (await hashFalso), contrasena);
 
@@ -57,7 +58,7 @@ export async function iniciarSesion(identificadorCuenta: string, contrasena: str
     }),
   ]);
 
-  const token = jwt.sign({}, JWT_SECRET, {
+  const token = jwt.sign({ sv: f.version_sesion }, JWT_SECRET, {
     algorithm: 'HS256',
     subject: f.id,
     jwtid: randomUUID(),
@@ -89,8 +90,7 @@ export async function validarToken(token: string): Promise<Sesion> {
   let p: jwt.JwtPayload;
   try {
     const dec = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
-    if (typeof dec === 'string' || !dec.sub || !dec.jti || !dec.exp || !dec.iat)
-      throw new Error('payload');
+    if (typeof dec === 'string' || !dec.sub || !dec.jti || !dec.exp) throw new Error('payload');
     p = dec;
   } catch {
     throw new ErrorHttp(401, 'No autenticado');
@@ -99,10 +99,9 @@ export async function validarToken(token: string): Promise<Sesion> {
     prisma.sesionRevocada.findUnique({ where: { jti: p.jti! } }),
     prisma.funcionario.findUnique({ where: { id: p.sub! } }),
   ]);
-  // shortcut: iat tiene precisión de segundos; un token emitido en el mismo segundo de la invalidación también se rechaza.
-  const invalidada =
-    !!f?.sesionesValidasDesde && p.iat! <= Math.floor(f.sesionesValidasDesde.getTime() / 1000);
-  if (revocada || !f?.activo || invalidada) throw new ErrorHttp(401, 'No autenticado');
+  // sv = versión de sesión; cambiar rol/activo la incrementa e invalida los tokens anteriores.
+  if (revocada || !f?.activo || !Number.isInteger(p.sv) || p.sv !== f.versionSesion)
+    throw new ErrorHttp(401, 'No autenticado');
   return { id: f.id, rol: f.rol, unidadId: f.unidadId, jti: p.jti!, exp: p.exp! };
 }
 

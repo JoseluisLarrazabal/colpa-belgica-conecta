@@ -90,7 +90,7 @@ async function modificar(
       data: {
         ...cambios,
         ...(reactiva && { intentosFallidos: 0, bloqueadoHasta: null }),
-        ...((cambiaActivo || cambiaRol) && { sesionesValidasDesde: new Date() }),
+        ...((cambiaActivo || cambiaRol) && { versionSesion: { increment: 1 } }),
       },
       select: PUBLICO,
     });
