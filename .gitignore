@@ -20,4 +20,3 @@ apps/api/src/generated/
 skills-lock.json
 .claude/skills/
 .vercel
-.env*

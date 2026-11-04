@@ -9,7 +9,7 @@
 
 ## Diseño (aprobado por el CTO 2026-11-04)
 
-- **Propuesta C**: [docs/diseno/propuesta-C.html](diseno/propuesta-C.html) · Artifact https://claude.ai/artifact/Et1g1rFrtSEWQZQKvmDJNP
+- **Propuesta C**: [docs/diseno/propuesta-C.html](diseno/propuesta-C.html) (fuente de verdad; los Artifacts publicados ya no existen).
 - Estructura de B (sello de frescura en cada pantalla de lectura, vocabulario de estados, una acción primaria) + paleta de A (solo tokens de la Tabla 2.66, sin tintes).
 - Sin conexión = banda neutra #49454F (no alarma); ámbar solo para avisos reales.
 - Inicio con "Próximas actividades" (fecha relativa) para planificar el traslado; el Lugar del detalle enlaza a la ficha del directorio (RF-35).
@@ -24,6 +24,9 @@
 - `TRUST_PROXY_HOPS` obligatorio en producción (Railway = 1).
 - Lectura pública (RF-15/16): DTO por lista blanca (sin observaciones, autor ni ids internos). Vigencia = `fechaFin ?? fechaInicio >= hoy` en `America/La_Paz`. ETag = hash del DTO (listas incluyen la fecha) y 304; el cliente debe usar el header `Date` del 304 como "última actualización" (RF-31). Destacadas: máx. 10. Rate limit público 1000/15 min por IP (CGNAT de operadoras móviles; `shortcut:` en memoria por proceso).
 - RF-14: solo `COMUNICADO_SANITARIO` es destacable (`TIPOS_DESTACABLES`). Zod 4 aplica `.default()` aun bajo `.partial()`: el default de `destacado` se aplica solo al crear (`aColumnas`). No poner `.default()` en campos de `base`.
+- **Hosting (CTO 2026-11-04):** Railway descartado (trial vencido). API en **Vercel** (proyecto `colpa-belgica-conecta-api`, cuenta `jencarlosmoral2-1127`, región `gru1`): https://colpa-belgica-conecta-api.vercel.app. Postgres en **Neon** (proyecto `crimson-snow-48687079`, rama `production`, `aws-sa-east-1`, Postgres 18). Neon Auth (Better Auth) activado en la consola por decisión del CTO, **no conectado**: la app conserva su login propio. Imágenes en Cloudinary (carpeta `colpa-belgica-conecta`).
+- Despliegue: por CLI desde un `git archive` del commit (no el directorio de trabajo, para no subir `.env*`); el GitHub del repo y el de la cuenta de Vercel son distintos, sin integración Git. Variables de Vercel (sensitive): `DATABASE_URL` (rol `colpa_app`, pooled), `JWT_SECRET`, `TRUST_PROXY_HOPS=1`, `CLOUDINARY_*`. Secretos locales solo en `.env.neon` (gitignored; leer con dotenv o `util.parseEnv`, nunca `source`: lleva `&`).
+- Base: la API usa `colpa_app` (lectura/escritura, sin UPDATE/DELETE/TRUNCATE sobre `registro_auditoria`, sin acceso a `_prisma_migrations`). Migraciones siempre como `neondb_owner` con la URL directa: ver `apps/api/prisma/rol-app.sql`. Seed demo cargado (3 cuentas `*.demo`, contraseña en `SEED_PASSWORD` de `.env.neon`) + 1 comunicado destacado publicado con imagen real.
 - Riesgo aceptado: un atacante puede bloquear una cuenta ajena 15 min (inherente al RNF de bloqueo). Si el proceso cae entre reservar el 5.º intento y escribir el bloqueo, la cuenta queda sin poder entrar hasta que un admin la reactive.
 
 ## Revisiones
@@ -34,12 +37,14 @@
 ## Deuda registrada
 
 - Imágenes: sin reserva de cupos de subida ni `destroy` en Cloudinary; firmas repetidas o borrados dejan archivos huérfanos (costo, requiere funcionario autenticado). Verificar firma/carpeta con la cuenta real de Cloudinary (los tests no usan red).
-- Auditoría: en producción, si el rol de la app no es dueño de la tabla, `REVOKE UPDATE, DELETE, TRUNCATE` sobre `registro_auditoria`.
+- **Rotar credenciales al cerrar el proyecto (decisión del CTO):** contraseña de `neondb_owner` y API secret de Cloudinary quedaron en logs locales de esta máquina; regenerar ambos y actualizar Vercel y `.env.neon`.
+- Rate limit en memoria: en Vercel es por instancia y se reinicia en cada arranque en frío; el bloqueo por cuenta (BD) sí vale. Pasar a un store compartido (p. ej. Upstash) antes de uso público real. Falta un test de `X-Forwarded-For` falsificado.
+- ESLint local recorre `.claude/worktrees/` (worktrees de agentes): ignorar `.claude` en la config.
 - Decisiones donde la tesis calla (reflejar en el Documento PG): máx. 4 imágenes jpg/jpeg/png/webp; Publicador limitado a su unidad; Aprobador ve la cola En revisión de todas las unidades y nunca borradores; descartar prohibido si ya fue enviado a revisión; regla de vigencia de RF-15; destacado solo para comunicados sanitarios.
 
 ## Pendiente
 
-- CTO: `railway login` y `eas login` (entorno de pruebas y development build Android).
+- CTO: cuenta Expo + `eas login` cuando lleguemos al push (development build Android). Instalar Expo Go en el teléfono para probar el núcleo.
 - Panel móvil, desvíos conocidos: fechas/horas como texto; un PATCH no puede vaciar campos opcionales (la API no acepta `null`; el formulario lo bloquea con aviso); `panel-revision.png` retirada de evidencias (mostraba un aviso de push inexistente), regenerar. Sin verificar: dispositivo Android, subida real a Cloudinary, escala 200 %, TalkBack, `expo-doctor`.
 - No anunciar push en la UI hasta que RF-24 exista.
 - Siguiente: pantallas del habitante (Inicio con destacados + próximas actividades, Salud, detalle con "Ver ficha del lugar", sello de frescura, persistencia offline con TanStack Query persist + expo-sqlite).
