@@ -1,0 +1,212 @@
+[
+  {
+    "id": "RF-01",
+    "actor": "Publicador, Aprobador, Administrador técnico",
+    "titulo": "Iniciar sesión",
+    "modulo": "M01"
+  },
+  {
+    "id": "RF-02",
+    "actor": "Administrador técnico",
+    "titulo": "Gestionar cuentas de funcionarios",
+    "modulo": "M01"
+  },
+  {
+    "id": "RF-03",
+    "actor": "Administrador técnico",
+    "titulo": "Asignar rol a una cuenta",
+    "modulo": "M01"
+  },
+  {
+    "id": "RF-04",
+    "actor": "Publicador",
+    "titulo": "Elaborar publicación con ficha estructurada",
+    "modulo": "M01"
+  },
+  {
+    "id": "RF-05",
+    "actor": "Publicador",
+    "titulo": "Adjuntar imágenes a la publicación",
+    "modulo": "M01"
+  },
+  {
+    "id": "RF-06",
+    "actor": "Publicador",
+    "titulo": "Enviar publicación a revisión",
+    "modulo": "M01"
+  },
+  {
+    "id": "RF-07",
+    "actor": "Aprobador",
+    "titulo": "Publicar publicación revisada",
+    "modulo": "M01"
+  },
+  {
+    "id": "RF-08",
+    "actor": "Aprobador",
+    "titulo": "Devolver publicación con observaciones",
+    "modulo": "M01"
+  },
+  {
+    "id": "RF-09",
+    "actor": "Aprobador",
+    "titulo": "Archivar publicación",
+    "modulo": "M01"
+  },
+  {
+    "id": "RF-10",
+    "actor": "Administrador técnico",
+    "titulo": "Consultar el registro de auditoría",
+    "modulo": "M01"
+  },
+  {
+    "id": "RF-11",
+    "actor": "Publicador",
+    "titulo": "Registrar campaña de vacunación",
+    "modulo": "M02"
+  },
+  {
+    "id": "RF-12",
+    "actor": "Publicador",
+    "titulo": "Registrar jornada de atención o brigada móvil",
+    "modulo": "M02"
+  },
+  {
+    "id": "RF-13",
+    "actor": "Publicador",
+    "titulo": "Registrar entrega de medicamentos e insumos",
+    "modulo": "M02"
+  },
+  {
+    "id": "RF-14",
+    "actor": "Publicador",
+    "titulo": "Destacar comunicado sanitario o de emergencia",
+    "modulo": "M02"
+  },
+  {
+    "id": "RF-15",
+    "actor": "Habitante",
+    "titulo": "Consultar publicaciones de salud",
+    "modulo": "M02"
+  },
+  {
+    "id": "RF-16",
+    "actor": "Habitante",
+    "titulo": "Visualizar comunicados destacados en la pantalla principal",
+    "modulo": "M02"
+  },
+  {
+    "id": "RF-17",
+    "actor": "Publicador",
+    "titulo": "Registrar actividad escolar",
+    "modulo": "M03"
+  },
+  {
+    "id": "RF-18",
+    "actor": "Publicador",
+    "titulo": "Registrar comunicado de educación",
+    "modulo": "M03"
+  },
+  {
+    "id": "RF-19",
+    "actor": "Habitante",
+    "titulo": "Consultar calendario de actividades educativas",
+    "modulo": "M03"
+  },
+  {
+    "id": "RF-20",
+    "actor": "Habitante",
+    "titulo": "Consultar comunicados de educación",
+    "modulo": "M03"
+  },
+  {
+    "id": "RF-21",
+    "actor": "Publicador",
+    "titulo": "Registrar evento o actividad comunitaria",
+    "modulo": "M04"
+  },
+  {
+    "id": "RF-22",
+    "actor": "Habitante",
+    "titulo": "Consultar agenda de eventos por fecha",
+    "modulo": "M04"
+  },
+  {
+    "id": "RF-23",
+    "actor": "Habitante",
+    "titulo": "Consultar agenda de eventos por lugar",
+    "modulo": "M04"
+  },
+  {
+    "id": "RF-24",
+    "actor": "Aprobador",
+    "titulo": "Enviar notificación al publicar",
+    "modulo": "M05"
+  },
+  {
+    "id": "RF-25",
+    "actor": "Habitante",
+    "titulo": "Registrar dispositivo para notificaciones",
+    "modulo": "M05"
+  },
+  {
+    "id": "RF-26",
+    "actor": "Publicador",
+    "titulo": "Programar recordatorio de una actividad",
+    "modulo": "M05"
+  },
+  {
+    "id": "RF-27",
+    "actor": "Habitante",
+    "titulo": "Recibir y abrir una notificación",
+    "modulo": "M05"
+  },
+  {
+    "id": "RF-28",
+    "actor": "Administrador técnico",
+    "titulo": "Consultar alcance anónimo de las notificaciones",
+    "modulo": "M05"
+  },
+  {
+    "id": "RF-29",
+    "actor": "Habitante",
+    "titulo": "Almacenar contenidos localmente",
+    "modulo": "M06"
+  },
+  {
+    "id": "RF-30",
+    "actor": "Habitante",
+    "titulo": "Consultar contenidos sin conexión",
+    "modulo": "M06"
+  },
+  {
+    "id": "RF-31",
+    "actor": "Habitante",
+    "titulo": "Indicar la última actualización",
+    "modulo": "M06"
+  },
+  {
+    "id": "RF-32",
+    "actor": "Habitante",
+    "titulo": "Sincronizar contenidos al recuperar la señal",
+    "modulo": "M06"
+  },
+  {
+    "id": "RF-33",
+    "actor": "Publicador",
+    "titulo": "Registrar ficha de establecimiento",
+    "modulo": "M07"
+  },
+  {
+    "id": "RF-34",
+    "actor": "Habitante",
+    "titulo": "Consultar directorio en mapa",
+    "modulo": "M07"
+  },
+  {
+    "id": "RF-35",
+    "actor": "Habitante",
+    "titulo": "Consultar ficha de un establecimiento",
+    "modulo": "M07"
+  }
+]

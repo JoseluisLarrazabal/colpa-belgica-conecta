@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "types": ["node", "jest"]
+  },
+  "include": ["src", "test", "prisma", "prisma.config.ts", "jest.config.cjs"]
+}

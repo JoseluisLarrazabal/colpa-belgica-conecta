@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.expo/
+expo-env.d.ts
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+!.env.test.example
+apps/api/src/generated/
+.DS_Store
+*.pem
+*.jks
+*.p12
+*.key

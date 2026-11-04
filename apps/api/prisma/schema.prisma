@@ -1,0 +1,268 @@
+// Fuente: diagramas/bd_relacional.puml y Tablas 2.52 a 2.63 del Documento PG.
+// Los enums reflejan packages/shared/src/dominio/estados.ts (verificado en test/enums.test.ts).
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RolFuncionario {
+  PUBLICADOR
+  APROBADOR
+  ADMIN_TECNICO
+
+  @@map("rol_funcionario")
+}
+
+enum AreaUnidad {
+  SALUD
+  EDUCACION
+  DESARROLLO_COMUNITARIO
+  COMUNICACION
+
+  @@map("area_unidad")
+}
+
+enum Modulo {
+  SALUD
+  EDUCACION
+  EVENTOS
+
+  @@map("modulo")
+}
+
+enum TipoPublicacion {
+  CAMPANA_VACUNACION
+  JORNADA_ATENCION
+  ENTREGA_MEDICAMENTOS
+  COMUNICADO_SANITARIO
+  ACTIVIDAD_ESCOLAR
+  COMUNICADO_EDUCACION
+  FERIA
+  REUNION_VECINAL
+  ACTIVIDAD_CULTURAL
+  ACTIVIDAD_DEPORTIVA
+
+  @@map("tipo_publicacion")
+}
+
+enum EstadoPublicacion {
+  BORRADOR
+  EN_REVISION
+  PUBLICADO
+  ARCHIVADO
+
+  @@map("estado_publicacion")
+}
+
+enum TipoEstablecimiento {
+  CENTRO_SALUD
+  UNIDAD_EDUCATIVA
+
+  @@map("tipo_establecimiento")
+}
+
+enum Plataforma {
+  ANDROID
+  IOS
+
+  @@map("plataforma")
+}
+
+enum TipoNotificacion {
+  PUBLICACION
+  RECORDATORIO
+
+  @@map("tipo_notificacion")
+}
+
+model Unidad {
+  id              String          @id @default(uuid()) @db.Uuid
+  nombre          String          @unique @db.VarChar(120)
+  area            AreaUnidad
+  funcionarios    Funcionario[]
+  publicaciones   Publicacion[]
+  establecimientos Establecimiento[]
+
+  @@map("unidad")
+}
+
+model Funcionario {
+  id                  String    @id @default(uuid()) @db.Uuid
+  nombreCompleto      String    @map("nombre_completo") @db.VarChar(120)
+  identificadorCuenta String    @unique @map("identificador_cuenta") @db.VarChar(60)
+  hashContrasena      String    @map("hash_contrasena") @db.VarChar(255)
+  rol                 RolFuncionario
+  unidadId            String    @map("unidad_id") @db.Uuid
+  activo              Boolean   @default(true)
+  intentosFallidos    Int       @default(0) @map("intentos_fallidos") @db.SmallInt
+  bloqueadoHasta      DateTime? @map("bloqueado_hasta") @db.Timestamptz(6)
+  creadoEn            DateTime  @default(now()) @map("creado_en") @db.Timestamptz(6)
+  actualizadoEn       DateTime  @updatedAt @map("actualizado_en") @db.Timestamptz(6)
+
+  unidad                    Unidad            @relation(fields: [unidadId], references: [id])
+  publicacionesAutor        Publicacion[]     @relation("PublicacionAutor")
+  publicacionesAprobador    Publicacion[]     @relation("PublicacionAprobador")
+  establecimientosAutor     Establecimiento[] @relation("EstablecimientoAutor")
+  establecimientosAprobador Establecimiento[] @relation("EstablecimientoAprobador")
+  auditoria                 RegistroAuditoria[]
+  sesionesRevocadas         SesionRevocada[]
+
+  @@map("funcionario")
+}
+
+model Publicacion {
+  id                String            @id @default(uuid()) @db.Uuid
+  modulo            Modulo
+  tipo              TipoPublicacion
+  titulo            String            @db.VarChar(150)
+  detalle           String?
+  fechaInicio       DateTime?         @map("fecha_inicio") @db.Date
+  fechaFin          DateTime?         @map("fecha_fin") @db.Date
+  hora              DateTime?         @db.Time(6)
+  lugar             String?           @db.VarChar(150)
+  poblacionObjetivo String?           @map("poblacion_objetivo") @db.VarChar(150)
+  requisitos        String?
+  tipoVacuna        String?           @map("tipo_vacuna") @db.VarChar(100)
+  unidadEducativa   String?           @map("unidad_educativa") @db.VarChar(150)
+  establecimientoId String?           @map("establecimiento_id") @db.Uuid
+  destacado         Boolean           @default(false)
+  estado            EstadoPublicacion @default(BORRADOR)
+  observaciones     String?
+  unidadId          String            @map("unidad_id") @db.Uuid
+  autorId           String            @map("autor_id") @db.Uuid
+  aprobadorId       String?           @map("aprobador_id") @db.Uuid
+  publicadoEn       DateTime?         @map("publicado_en") @db.Timestamptz(6)
+  archivadoEn       DateTime?         @map("archivado_en") @db.Timestamptz(6)
+  creadoEn          DateTime          @default(now()) @map("creado_en") @db.Timestamptz(6)
+  actualizadoEn     DateTime          @updatedAt @map("actualizado_en") @db.Timestamptz(6)
+
+  establecimiento Establecimiento? @relation(fields: [establecimientoId], references: [id])
+  unidad          Unidad           @relation(fields: [unidadId], references: [id])
+  autor           Funcionario      @relation("PublicacionAutor", fields: [autorId], references: [id])
+  aprobador       Funcionario?     @relation("PublicacionAprobador", fields: [aprobadorId], references: [id])
+  imagenes        Imagen[]
+  recordatorios   Recordatorio[]
+  notificaciones  Notificacion[]
+
+  @@index([modulo, estado, fechaInicio])
+  @@index([estado, destacado])
+  @@index([actualizadoEn])
+  @@index([unidadId, estado])
+  @@map("publicacion")
+}
+
+model Imagen {
+  id            String   @id @default(uuid()) @db.Uuid
+  publicacionId String   @map("publicacion_id") @db.Uuid
+  url           String   @db.VarChar(500)
+  publicId      String   @unique @map("public_id") @db.VarChar(255)
+  orden         Int      @default(0) @db.SmallInt
+  creadoEn      DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  publicacion Publicacion @relation(fields: [publicacionId], references: [id])
+
+  @@map("imagen")
+}
+
+model Establecimiento {
+  id              String              @id @default(uuid()) @db.Uuid
+  nombre          String              @db.VarChar(150)
+  tipo            TipoEstablecimiento
+  latitud         Decimal             @db.Decimal(9, 6)
+  longitud        Decimal             @db.Decimal(9, 6)
+  direccion       String?             @db.VarChar(200)
+  horarioAtencion String              @map("horario_atencion") @db.VarChar(200)
+  telefono        String?             @db.VarChar(30)
+  estado          EstadoPublicacion   @default(BORRADOR)
+  observaciones   String?
+  unidadId        String              @map("unidad_id") @db.Uuid
+  autorId         String              @map("autor_id") @db.Uuid
+  aprobadorId     String?             @map("aprobador_id") @db.Uuid
+  publicadoEn     DateTime?           @map("publicado_en") @db.Timestamptz(6)
+  archivadoEn     DateTime?           @map("archivado_en") @db.Timestamptz(6)
+  creadoEn        DateTime            @default(now()) @map("creado_en") @db.Timestamptz(6)
+  actualizadoEn   DateTime            @updatedAt @map("actualizado_en") @db.Timestamptz(6)
+
+  unidad        Unidad        @relation(fields: [unidadId], references: [id])
+  autor         Funcionario   @relation("EstablecimientoAutor", fields: [autorId], references: [id])
+  aprobador     Funcionario?  @relation("EstablecimientoAprobador", fields: [aprobadorId], references: [id])
+  publicaciones Publicacion[]
+
+  @@index([tipo, estado])
+  @@map("establecimiento")
+}
+
+model Dispositivo {
+  id             String     @id @default(uuid()) @db.Uuid
+  tokenPush      String     @unique @map("token_push") @db.VarChar(255)
+  plataforma     Plataforma
+  registradoEn   DateTime   @default(now()) @map("registrado_en") @db.Timestamptz(6)
+  ultimoContacto DateTime   @map("ultimo_contacto") @db.Timestamptz(6)
+
+  @@map("dispositivo")
+}
+
+model Recordatorio {
+  id                  String    @id @default(uuid()) @db.Uuid
+  publicacionId       String    @map("publicacion_id") @db.Uuid
+  anticipacionMinutos Int       @map("anticipacion_minutos")
+  programadoPara      DateTime  @map("programado_para") @db.Timestamptz(6)
+  enviadoEn           DateTime? @map("enviado_en") @db.Timestamptz(6)
+  creadoEn            DateTime  @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  publicacion Publicacion @relation(fields: [publicacionId], references: [id])
+
+  @@index([programadoPara, enviadoEn])
+  @@map("recordatorio")
+}
+
+model Notificacion {
+  id              String           @id @default(uuid()) @db.Uuid
+  publicacionId   String?          @map("publicacion_id") @db.Uuid
+  tipo            TipoNotificacion
+  titulo          String           @db.VarChar(150)
+  enviadaEn       DateTime         @map("enviada_en") @db.Timestamptz(6)
+  totalEnviadas   Int              @default(0) @map("total_enviadas")
+  totalEntregadas Int              @default(0) @map("total_entregadas")
+  totalAbiertas   Int              @default(0) @map("total_abiertas")
+
+  publicacion Publicacion? @relation(fields: [publicacionId], references: [id])
+
+  @@index([enviadaEn])
+  @@map("notificacion")
+}
+
+model RegistroAuditoria {
+  id                String             @id @default(uuid()) @db.Uuid
+  funcionarioId     String             @map("funcionario_id") @db.Uuid
+  accion            String             @db.VarChar(40)
+  entidad           String             @db.VarChar(40)
+  entidadId         String             @map("entidad_id") @db.Uuid
+  estadoResultante  EstadoPublicacion? @map("estado_resultante")
+  detalle           String?
+  fecha             DateTime           @default(now()) @db.Timestamptz(6)
+
+  funcionario Funcionario @relation(fields: [funcionarioId], references: [id])
+
+  @@index([entidad, entidadId, fecha])
+  @@map("registro_auditoria")
+}
+
+model SesionRevocada {
+  id            String   @id @default(uuid()) @db.Uuid
+  funcionarioId String   @map("funcionario_id") @db.Uuid
+  jti           String   @unique @db.VarChar(64)
+  expiraEn      DateTime @map("expira_en") @db.Timestamptz(6)
+  revocadaEn    DateTime @default(now()) @map("revocada_en") @db.Timestamptz(6)
+
+  funcionario Funcionario @relation(fields: [funcionarioId], references: [id])
+
+  @@index([expiraEn])
+  @@map("sesion_revocada")
+}
