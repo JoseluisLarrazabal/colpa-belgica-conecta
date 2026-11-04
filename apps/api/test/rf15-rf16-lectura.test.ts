@@ -1,16 +1,44 @@
 import request from 'supertest';
 import { prisma } from '../src/db';
-import { app, borradorDirecto, crearFuncionario, crearUnidad, limpiar } from './helpers';
+import {
+  api,
+  app,
+  borradorDirecto,
+  crearFuncionario,
+  crearUnidad,
+  FICHA,
+  limpiar,
+  token,
+} from './helpers';
 
 const a = app();
 const L = '/api/v1/publicaciones';
 let unidadId: string;
 let autorId: string;
+let tPub: string;
+let tApr: string;
 
 const dia = (d: number) => new Date(Date.now() + d * 86_400_000);
 const dato = (d: number) => dia(d).toISOString().slice(0, 10);
 
-/** Fila directa en la BD (la ficha de entrada no admite pasado ni destacado). */
+const COMUNICADO = {
+  ...FICHA,
+  tipo: 'COMUNICADO_SANITARIO',
+  titulo: 'Alerta sanitaria',
+  fechaInicio: dato(5),
+  tipoVacuna: undefined,
+};
+
+/** Flujo real: Publicador crea y envía, Aprobador publica. Devuelve el id. */
+async function publicada(ficha: object = COMUNICADO) {
+  const id = (await api.crear(a, tPub, ficha)).body.id as string;
+  await api.accion(a, tPub, id, 'enviar');
+  await api.accion(a, tApr, id, 'publicar');
+  return id;
+}
+const ids = (res: { body: { datos: { id: string }[] } }) => res.body.datos.map((p) => p.id);
+
+/** Fila directa en la BD: solo para estados/fechas inalcanzables por la API (pasado, imágenes con URL fija). */
 const crear = (extra: object = {}) =>
   borradorDirecto(unidadId, autorId, {
     titulo: 'Jornada de salud',
@@ -24,21 +52,63 @@ beforeEach(async () => {
   await limpiar();
   unidadId = (await crearUnidad('Dirección de Salud')).id;
   autorId = (await crearFuncionario(unidadId, 'PUBLICADOR', 'pub')).id;
+  await crearFuncionario(unidadId, 'APROBADOR', 'apr');
+  tPub = await token(a, 'pub');
+  tApr = await token(a, 'apr');
 });
 afterAll(() => prisma.$disconnect());
 
+describe('RF-14 Destacar comunicado sanitario o de emergencia', () => {
+  it('el Publicador crea un comunicado sanitario destacado', async () => {
+    const res = await api.crear(a, tPub, { ...COMUNICADO, destacado: true });
+    expect(res.status).toBe(201);
+    expect(res.body.destacado).toBe(true);
+  });
+
+  it('por defecto no es destacado', async () => {
+    expect((await api.crear(a, tPub, COMUNICADO)).body.destacado).toBe(false);
+  });
+
+  it('destacado en otro tipo responde 400 nombrando el campo, al crear y al editar', async () => {
+    const c = await api.crear(a, tPub, { ...FICHA, destacado: true });
+    expect(c.status).toBe(400);
+    expect(c.body.campos).toHaveProperty('destacado');
+    const id = (await api.crear(a, tPub)).body.id as string;
+    const e = await api.editar(a, tPub, id, { destacado: true });
+    expect(e.status).toBe(400);
+    expect(e.body.campos).toHaveProperty('destacado');
+    expect((await api.obtener(a, tPub, id)).body.destacado).toBe(false);
+  });
+
+  it('se marca y desmarca editando el borrador, y no se edita tras enviarlo', async () => {
+    const id = (await api.crear(a, tPub, COMUNICADO)).body.id as string;
+    expect((await api.editar(a, tPub, id, { destacado: true })).body.destacado).toBe(true);
+    expect((await api.editar(a, tPub, id, { destacado: false })).body.destacado).toBe(false);
+    await api.accion(a, tPub, id, 'enviar');
+    expect((await api.editar(a, tPub, id, { destacado: true })).status).toBe(409);
+  });
+
+  it('un valor no booleano responde 400', async () => {
+    expect((await api.crear(a, tPub, { ...COMUNICADO, destacado: 'si' })).status).toBe(400);
+  });
+});
+
 describe('RF-15 Consultar publicaciones de salud', () => {
-  it('lista solo las PUBLICADO, sin autenticación', async () => {
-    const ok = await crear({ titulo: 'Visible' });
-    for (const estado of ['BORRADOR', 'EN_REVISION', 'ARCHIVADO']) await crear({ estado });
-    const res = await request(a).get(L);
+  it('lista solo las PUBLICADO del módulo de salud, sin autenticación', async () => {
+    const ok = await publicada({ ...FICHA, fechaInicio: dato(5) });
+    await api.crear(a, tPub, { ...FICHA, fechaInicio: dato(5) }); // BORRADOR
+    const enRevision = (await api.crear(a, tPub, { ...FICHA, fechaInicio: dato(5) })).body.id;
+    await api.accion(a, tPub, enRevision, 'enviar');
+    const archivada = await publicada({ ...FICHA, fechaInicio: dato(5) });
+    await api.accion(a, tApr, archivada, 'archivar');
+    const res = await request(a).get(L).query({ modulo: 'SALUD' });
     expect(res.status).toBe(200);
-    expect(res.body.datos.map((p: { id: string }) => p.id)).toEqual([ok.id]);
+    expect(ids(res)).toEqual([ok]);
     expect(new Date(res.body.generadoEn).getTime()).not.toBeNaN();
   });
 
   it('expone solo campos aptos para el ciudadano y las imágenes en orden', async () => {
-    const p = await crear({ observaciones: 'interno', detalle: 'Texto' });
+    const p = await crear({ observaciones: 'interno', detalle: 'Texto' }); // imágenes con URL fija
     await prisma.imagen.createMany({
       data: [
         { publicacionId: p.id, url: 'https://x/2.jpg', publicId: 'b', orden: 1 },
@@ -143,31 +213,46 @@ describe('RF-15 Consultar publicaciones de salud', () => {
 });
 
 describe('RF-16 Visualizar comunicados destacados en la pantalla principal', () => {
-  const comunicado = (extra: object = {}) =>
-    crear({ tipo: 'COMUNICADO_SANITARIO', destacado: true, ...extra });
+  const destacada = (extra: object = {}) => publicada({ ...COMUNICADO, destacado: true, ...extra });
+  const vencer = (id: string) =>
+    prisma.publicacion.update({
+      where: { id },
+      data: { fechaInicio: new Date(`${dato(-9)}T00:00:00Z`), fechaFin: null },
+    });
 
   it('devuelve solo comunicados sanitarios PUBLICADO, destacados y vigentes, sin autenticación', async () => {
-    const ok = await comunicado({ titulo: 'Alerta' });
-    await comunicado({ estado: 'ARCHIVADO' });
-    await comunicado({ estado: 'BORRADOR' });
-    await comunicado({ fechaInicio: new Date(`${dato(-9)}T00:00:00Z`) }); // vencido
-    await comunicado({ destacado: false });
-    await crear({ destacado: true }); // destacado pero no es comunicado sanitario
+    const ok = await destacada({ titulo: 'Alerta' });
+    const archivado = await destacada();
+    await api.accion(a, tApr, archivado, 'archivar');
+    await api.crear(a, tPub, { ...COMUNICADO, destacado: true }); // BORRADOR
+    await vencer(await destacada()); // vencido
+    await publicada(COMUNICADO); // comunicado sin destacar
+    await publicada({ ...FICHA, fechaInicio: dato(5) }); // otro tipo (no puede destacarse)
     const res = await request(a).get(`${L}/destacadas`);
     expect(res.status).toBe(200);
-    expect(res.body.datos.map((p: { id: string }) => p.id)).toEqual([ok.id]);
+    expect(ids(res)).toEqual([ok]);
     expect(res.body.datos[0].destacado).toBe(true);
     expect(res.body.datos[0]).not.toHaveProperty('autorId');
     expect(res.body.datos[0]).not.toHaveProperty('observaciones');
   });
 
   it('un comunicado con fecha fin futura sigue vigente aunque su inicio sea pasado', async () => {
-    const c = await comunicado({
-      fechaInicio: new Date(`${dato(-9)}T00:00:00Z`),
-      fechaFin: new Date(`${dato(1)}T00:00:00Z`),
+    const id = await destacada();
+    await prisma.publicacion.update({
+      where: { id },
+      data: {
+        fechaInicio: new Date(`${dato(-9)}T00:00:00Z`),
+        fechaFin: new Date(`${dato(1)}T00:00:00Z`),
+      },
     });
+    expect(ids(await request(a).get(`${L}/destacadas`))).toEqual([id]);
+  });
+
+  it('muestra como máximo 10, los más recientes primero', async () => {
+    const creados: string[] = [];
+    for (let i = 0; i < 11; i++) creados.push(await destacada());
     const res = await request(a).get(`${L}/destacadas`);
-    expect(res.body.datos.map((p: { id: string }) => p.id)).toEqual([c.id]);
+    expect(ids(res)).toEqual(creados.slice(1).reverse());
   });
 
   it('sin destacados devuelve lista vacía (la app oculta la sección)', async () => {
@@ -177,12 +262,23 @@ describe('RF-16 Visualizar comunicados destacados en la pantalla principal', () 
   });
 
   it('ETag: responde 304 si no cambió', async () => {
-    await comunicado();
+    await destacada();
     const r1 = await request(a).get(`${L}/destacadas`);
     expect(r1.headers['cache-control']).toBe('no-cache');
     const r2 = await request(a)
       .get(`${L}/destacadas`)
       .set('If-None-Match', r1.headers['etag'] as string);
     expect(r2.status).toBe(304);
+  });
+
+  it('ETag: cambia si cambia el nombre de la unidad', async () => {
+    await destacada();
+    const antes = (await request(a).get(`${L}/destacadas`)).headers['etag'];
+    await prisma.unidad.update({ where: { id: unidadId }, data: { nombre: 'Otra unidad' } });
+    const r = await request(a)
+      .get(`${L}/destacadas`)
+      .set('If-None-Match', antes as string);
+    expect(r.status).toBe(200);
+    expect(r.headers['etag']).not.toBe(antes);
   });
 });

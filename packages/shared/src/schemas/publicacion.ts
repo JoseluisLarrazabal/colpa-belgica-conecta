@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { CATALOGO, MODULOS, tipoPerteneceAModulo, type TipoPublicacion } from '../catalogo';
+import {
+  CATALOGO,
+  MODULOS,
+  TIPOS_DESTACABLES,
+  tipoPerteneceAModulo,
+  type TipoPublicacion,
+} from '../catalogo';
 import { ACCIONES, estadoSchema } from '../dominio/estados';
 
 // Longitudes = columnas de publicacion (Tabla 2.55).
@@ -18,6 +24,7 @@ const base = {
   lugar: texto(150),
   poblacionObjetivo: texto(150),
   requisitos: z.string().trim().min(1),
+  destacado: z.boolean().default(false), // RF-14
 };
 
 /** Campos propios de un tipo (se suman a `base`). Agregar un tipo = una entrada aquí. */
@@ -36,6 +43,13 @@ export const fichaSchema = z
   .superRefine((f, ctx) => {
     if (!tipoPerteneceAModulo(f.modulo, f.tipo)) {
       ctx.addIssue({ code: 'custom', path: ['tipo'], message: 'El tipo no corresponde al módulo' });
+    }
+    if (f.destacado && !TIPOS_DESTACABLES.includes(f.tipo)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['destacado'],
+        message: 'Solo se puede destacar un comunicado sanitario',
+      });
     }
     if (f.fechaFin && f.fechaFin < f.fechaInicio) {
       ctx.addIssue({

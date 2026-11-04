@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
-import type { ListarPublicasInput } from '@colpa/shared';
+import { TIPOS_DESTACABLES, type ListarPublicasInput } from '@colpa/shared';
 import { prisma } from '../db';
 import { ErrorHttp } from '../middleware/error';
 import type { Prisma } from '../generated/prisma/client';
+import { fechaIso, horaHm } from './publicacion.service';
 
 // Solo campos aptos para el ciudadano: sin autor, aprobador, observaciones ni auditoría.
 const SELECT = {
@@ -41,18 +42,15 @@ const vigente = (h: Date): Prisma.PublicacionWhereInput => ({
   OR: [{ fechaFin: { gte: h } }, { fechaFin: null, fechaInicio: { gte: h } }],
 });
 
-/** Tipo que RF-16 muestra en la pantalla principal (RF-14: comunicados sanitarios y de emergencia). */
-export const TIPO_DESTACABLE = 'COMUNICADO_SANITARIO';
-
 const aDtoPublico = (p: Fila) => ({
   id: p.id,
   modulo: p.modulo,
   tipo: p.tipo,
   titulo: p.titulo,
   detalle: p.detalle,
-  fechaInicio: p.fechaInicio?.toISOString().slice(0, 10) ?? null,
-  fechaFin: p.fechaFin?.toISOString().slice(0, 10) ?? null,
-  hora: p.hora?.toISOString().slice(11, 16) ?? null,
+  fechaInicio: fechaIso(p.fechaInicio),
+  fechaFin: fechaIso(p.fechaFin),
+  hora: horaHm(p.hora),
   lugar: p.lugar,
   poblacionObjetivo: p.poblacionObjetivo,
   requisitos: p.requisitos,
@@ -65,17 +63,17 @@ const aDtoPublico = (p: Fila) => ({
   actualizadoEn: p.actualizadoEn,
 });
 
-/** Validador de caché: cambia si cambia una fila, el conjunto devuelto o el día (la vigencia depende de él). */
-function etag(filas: Fila[], h: Date) {
-  const hash = createHash('sha1').update(h.toISOString().slice(0, 10));
-  for (const p of filas) hash.update(`|${p.id}:${p.actualizadoEn.getTime()}`);
-  return `W/"${hash.digest('base64url')}"`;
+/**
+ * ETag sobre el DTO serializado (incluye unidad e imágenes). Las listas añaden el día: la vigencia depende de él;
+ * el detalle no. `generadoEn` queda fuera del hash (cambia en cada respuesta). Devuelve el cuerpo ya armado.
+ */
+function respuesta(datos: unknown, cuerpo: object, dia = '') {
+  const hash = createHash('sha1').update(dia).update(JSON.stringify(datos)).digest('base64url');
+  return { etag: `W/"${hash}"`, cuerpo: { ...cuerpo, generadoEn: new Date() } };
 }
-
-/** `generadoEn` = hora del servidor: la app la guarda como "Última actualización" (RF-31). */
-const respuesta = (filas: Fila[], h: Date) => {
+const lista = (filas: Fila[], h: Date) => {
   const datos = filas.map(aDtoPublico);
-  return { etag: etag(filas, h), datos, generadoEn: new Date() };
+  return respuesta(datos, { datos }, h.toISOString().slice(0, 10));
 };
 
 const PUBLICADO = { estado: 'PUBLICADO' } as const;
@@ -95,26 +93,28 @@ export async function listar(q: ListarPublicasInput) {
     take: q.limite,
     skip: q.desplazamiento,
   });
-  const { datos, ...r } = respuesta(filas, h);
-  return { etag: r.etag, cuerpo: { datos, generadoEn: r.generadoEn } };
+  return lista(filas, h);
 }
+
+// Tope de la pantalla principal: sin él, la lista crecería sin límite (el documento no fija un número).
+const MAX_DESTACADAS = 10;
 
 /** RF-16: comunicados destacados y vigentes, los más recientes primero. */
 export async function destacadas() {
   const h = hoy();
   const filas = await prisma.publicacion.findMany({
-    where: { ...PUBLICADO, ...vigente(h), destacado: true, tipo: TIPO_DESTACABLE },
+    where: { ...PUBLICADO, ...vigente(h), destacado: true, tipo: { in: [...TIPOS_DESTACABLES] } },
     select: SELECT,
     orderBy: [{ publicadoEn: 'desc' }, { id: 'asc' }],
+    take: MAX_DESTACADAS,
   });
-  const { datos, ...r } = respuesta(filas, h);
-  return { etag: r.etag, cuerpo: { datos, generadoEn: r.generadoEn } };
+  return lista(filas, h);
 }
 
 /** Detalle: solo PUBLICADO (aunque su fecha haya pasado); archivada o no publicada, 404 sin distinguir. */
 export async function detalle(id: string) {
   const p = await prisma.publicacion.findFirst({ where: { id, ...PUBLICADO }, select: SELECT });
   if (!p) throw new ErrorHttp(404, 'La publicación no está disponible');
-  const { datos, ...r } = respuesta([p], hoy());
-  return { etag: r.etag, cuerpo: { publicacion: datos[0], generadoEn: r.generadoEn } };
+  const publicacion = aDtoPublico(p);
+  return respuesta(publicacion, { publicacion });
 }

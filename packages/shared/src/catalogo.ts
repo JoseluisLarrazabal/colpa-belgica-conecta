@@ -5,6 +5,9 @@ export const CATALOGO = {
   EVENTOS: ['FERIA', 'REUNION_VECINAL', 'ACTIVIDAD_CULTURAL', 'ACTIVIDAD_DEPORTIVA'],
 } as const;
 
+/** Tipos que RF-14 permite destacar y RF-16 muestra en la pantalla principal (el catálogo no tiene tipo de emergencia). */
+export const TIPOS_DESTACABLES: readonly TipoPublicacion[] = ['COMUNICADO_SANITARIO'];
+
 export type Modulo = keyof typeof CATALOGO;
 export type TipoPublicacion = (typeof CATALOGO)[Modulo][number];
 

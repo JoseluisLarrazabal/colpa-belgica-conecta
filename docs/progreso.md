@@ -2,7 +2,7 @@
 
 Generado el 2026-11-04 por `pnpm progreso`.
 
-**Avance: 13/35 RF con al menos un test verde y ninguno fallido (37.1%).** Solo cuentan los tests de `apps/*`.
+**Avance: 14/35 RF con al menos un test verde y ninguno fallido (40.0%).** Solo cuentan los tests de `apps/*`.
 
 | RF | Módulo | Título | Estado | Tests verdes |
 |----|--------|--------|--------|--------------|
@@ -19,9 +19,9 @@ Generado el 2026-11-04 por `pnpm progreso`.
 | RF-11 | M02 | Registrar campaña de vacunación | Con test verde | 6 |
 | RF-12 | M02 | Registrar jornada de atención o brigada móvil | Pendiente | 0 |
 | RF-13 | M02 | Registrar entrega de medicamentos e insumos | Pendiente | 0 |
-| RF-14 | M02 | Destacar comunicado sanitario o de emergencia | Pendiente | 0 |
+| RF-14 | M02 | Destacar comunicado sanitario o de emergencia | Con test verde | 5 |
 | RF-15 | M02 | Consultar publicaciones de salud | Con test verde | 7 |
-| RF-16 | M02 | Visualizar comunicados destacados en la pantalla principal | Con test verde | 4 |
+| RF-16 | M02 | Visualizar comunicados destacados en la pantalla principal | Con test verde | 6 |
 | RF-17 | M03 | Registrar actividad escolar | Pendiente | 0 |
 | RF-18 | M03 | Registrar comunicado de educación | Pendiente | 0 |
 | RF-19 | M03 | Consultar calendario de actividades educativas | Pendiente | 0 |
