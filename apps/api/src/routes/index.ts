@@ -11,21 +11,24 @@ import {
   idParamSchema,
   imagenParamSchema,
   listarPublicacionesSchema,
+  listarPublicasSchema,
   loginSchema,
   registrarImagenSchema,
 } from '@colpa/shared';
 import { health } from '../controllers/health.controller';
 import { login, logout } from '../controllers/auth.controller';
 import * as cuentas from '../controllers/cuentas.controller';
+import * as publico from '../controllers/publico.controller';
 import * as pub from '../controllers/publicaciones.controller';
 import { autenticar, requiereRol } from '../middleware/auth';
 import { validar } from '../middleware/validar';
 
 export interface OpcionesApi {
   loginMax?: number;
+  publicoMax?: number;
 }
 
-export function crearApiV1({ loginMax = 10 }: OpcionesApi = {}) {
+export function crearApiV1({ loginMax = 10, publicoMax = 1000 }: OpcionesApi = {}) {
   const r = Router();
   r.get('/health', health);
 
@@ -39,6 +42,20 @@ export function crearApiV1({ loginMax = 10 }: OpcionesApi = {}) {
   });
   r.post('/auth/login', limiteLogin, validar(loginSchema), login);
   r.post('/auth/logout', autenticar, logout);
+
+  // shortcut: memoria por proceso (usar store compartido si hay >1 réplica); límite por IP, y las operadoras móviles
+  // comparten IP pública (CGNAT), por eso es holgado: subirlo o limitar por otra clave si hay falsos 429.
+  const limitePublico = rateLimit({
+    windowMs: 15 * 60_000,
+    limit: publicoMax,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { error: 'Demasiadas solicitudes, inténtalo más tarde' },
+  });
+  // Públicas (Tabla 2.64): sin autenticación, solo lectura. `destacadas` va antes de `:id`.
+  r.get('/publicaciones', limitePublico, validar(listarPublicasSchema, 'query'), publico.listar);
+  r.get('/publicaciones/destacadas', limitePublico, publico.destacadas);
+  r.get('/publicaciones/:id', limitePublico, validar(idParamSchema, 'params'), publico.detalle);
 
   // Panel (Tabla 2.64). El rol se comprueba aquí; la propiedad por unidad, en el servicio.
   const panel = Router();

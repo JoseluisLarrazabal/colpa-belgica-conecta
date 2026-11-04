@@ -29,19 +29,23 @@ const noExiste = () => new ErrorHttp(404, 'La publicación no existe');
 const aFecha = (s?: string | null) => (s ? new Date(`${s}T00:00:00Z`) : null);
 const aHora = (s: string) => new Date(`1970-01-01T${s}:00Z`);
 
+export const fechaIso = (d: Date | null) => d?.toISOString().slice(0, 10) ?? null;
+export const horaHm = (d: Date | null) => d?.toISOString().slice(11, 16) ?? null;
+
 /** Fila -> representación de la API (misma forma que la ficha de entrada). */
 export function aDto<T extends Publicacion>(p: T) {
   return {
     ...p,
-    fechaInicio: p.fechaInicio?.toISOString().slice(0, 10) ?? null,
-    fechaFin: p.fechaFin?.toISOString().slice(0, 10) ?? null,
-    hora: p.hora?.toISOString().slice(11, 16) ?? null,
+    fechaInicio: fechaIso(p.fechaInicio),
+    fechaFin: fechaIso(p.fechaFin),
+    hora: horaHm(p.hora),
   };
 }
 
 /** Columnas de la ficha en el orden de Prisma, a partir de una ficha ya validada. */
 const aColumnas = (f: FichaInput) => ({
   ...f,
+  destacado: f.destacado ?? false,
   fechaInicio: aFecha(f.fechaInicio)!,
   fechaFin: aFecha(f.fechaFin),
   hora: aHora(f.hora),

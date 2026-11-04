@@ -7,7 +7,7 @@ import { prisma } from '../src/db';
 export const CLAVE = 'clave-de-prueba-123';
 const hashPromise = argon2.hash(CLAVE);
 
-export const app = () => crearApp({ loginMax: 1000 });
+export const app = () => crearApp({ loginMax: 1000, publicoMax: 100_000 });
 
 export async function limpiar() {
   // El trigger anti-TRUNCATE de la auditoría se salta solo aquí (el rol de pruebas es superusuario).
