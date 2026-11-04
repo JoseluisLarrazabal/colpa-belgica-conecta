@@ -4,12 +4,16 @@ import { colores } from '../theme';
 import { Txt } from './Txt';
 
 /** Banda neutra (no alarma): estar sin conexión es lo normal en zonas rurales. */
-export function BannerSinConexion() {
+export function BannerSinConexion({
+  texto = 'Sin conexión · no se puede guardar ni enviar',
+}: {
+  texto?: string;
+}) {
   return (
     <View style={s.banda} accessibilityRole="alert" accessibilityLiveRegion="polite">
       <MaterialCommunityIcons name="wifi-off" size={24} color="#FFFFFF" />
       <Txt v="t14m" color="#FFFFFF" style={s.texto}>
-        Sin conexión · no se puede guardar ni enviar
+        {texto}
       </Txt>
     </View>
   );
