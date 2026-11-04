@@ -1,0 +1,8 @@
+node_modules
+pnpm-lock.yaml
+apps/api/src/generated
+apps/api/prisma/migrations
+apps/mobile/assets
+.expo
+docs/plan-puesta-en-marcha.md
+docs/progreso.md
