@@ -2,7 +2,7 @@
   "name": "@colpa/shared",
   "version": "0.0.0",
   "private": true,
-  "main": "src/index.ts",
+  "main": "src/index",
   "types": "src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",

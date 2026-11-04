@@ -6,7 +6,7 @@ import { crearApiV1, type OpcionesApi } from './routes';
 
 export function crearApp(opciones?: OpcionesApi) {
   const app = express();
-  // Detrás del proxy de Railway hace falta confiar en él para que el límite use la IP real del cliente.
+  // Detrás del proxy (Vercel/Railway) hace falta confiar en él para que el límite use la IP real del cliente.
   app.set('trust proxy', TRUST_PROXY_HOPS);
   app.use(helmet());
   app.use(express.json());
@@ -14,3 +14,6 @@ export function crearApp(opciones?: OpcionesApi) {
   app.use(manejarError);
   return app;
 }
+
+// Vercel (Express zero-config) busca `src/app.ts` e importa el default export; sin app.listen. En local sigue mandando server.ts.
+export default crearApp();
