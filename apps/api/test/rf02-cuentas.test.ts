@@ -147,4 +147,29 @@ describe('RF-02 Gestionar cuentas de funcionarios', () => {
     expect((await request(a).get(URL)).status).toBe(401);
     expect(await prisma.funcionario.count()).toBe(3);
   });
+
+  it('PATCH vacío responde 400 con el mensaje del refine; cuerpo no objeto también', async () => {
+    const f = await crearFuncionario(unidadId, 'PUBLICADOR', 'pub');
+    const vacio = await request(a).patch(`${URL}/${f.id}`).set(auth(admin)).send({});
+    expect(vacio.status).toBe(400);
+    expect(vacio.body.errores).toContain('Indica al menos un campo a modificar');
+    const sin = await request(a).patch(`${URL}/${f.id}`).set(auth(admin));
+    expect(sin.status).toBe(400);
+    expect(sin.body.error).toMatch(/objeto/);
+  });
+
+  it('desactivar y reactivar invalida los tokens anteriores; un login nuevo funciona', async () => {
+    const f = await crearFuncionario(unidadId, 'PUBLICADOR', 'pub');
+    const viejo = await token(a, 'pub');
+    const lista = (t: string) => request(a).get(`${URL}`).set(auth(t));
+    const patch = (activo: boolean) =>
+      request(a).patch(`${URL}/${f.id}`).set(auth(admin)).send({ activo });
+    expect((await patch(false)).status).toBe(200);
+    expect((await patch(true)).status).toBe(200);
+    expect((await lista(viejo)).status).toBe(401);
+    await new Promise((r) => setTimeout(r, 1100)); // iat tiene resolución de segundos
+    const nuevo = await token(a, 'pub');
+    expect(nuevo).toBeTruthy();
+    expect((await request(a).post('/api/v1/auth/logout').set(auth(nuevo))).status).toBe(204);
+  });
 });

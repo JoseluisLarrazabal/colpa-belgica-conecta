@@ -6,8 +6,8 @@ Generado el 2026-11-04 por `pnpm progreso`.
 
 | RF | Módulo | Título | Estado | Tests verdes |
 |----|--------|--------|--------|--------------|
-| RF-01 | M01 | Iniciar sesión | Con test verde | 16 |
-| RF-02 | M01 | Gestionar cuentas de funcionarios | Con test verde | 9 |
+| RF-01 | M01 | Iniciar sesión | Con test verde | 17 |
+| RF-02 | M01 | Gestionar cuentas de funcionarios | Con test verde | 11 |
 | RF-03 | M01 | Asignar rol a una cuenta | Con test verde | 7 |
 | RF-04 | M01 | Elaborar publicación con ficha estructurada | Pendiente | 0 |
 | RF-05 | M01 | Adjuntar imágenes a la publicación | Pendiente | 0 |

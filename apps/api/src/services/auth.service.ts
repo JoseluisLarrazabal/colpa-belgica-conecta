@@ -10,27 +10,33 @@ export const MENSAJE_LOGIN = 'Credenciales incorrectas';
 // Hash descartable: se verifica cuando la cuenta no existe para igualar el tiempo de respuesta.
 const hashFalso = argon2.hash(randomUUID());
 
-export async function iniciarSesion(identificadorCuenta: string, contrasena: string) {
-  const f = await prisma.funcionario.findUnique({ where: { identificadorCuenta } });
-  const coincide = await argon2.verify(f?.hashContrasena ?? (await hashFalso), contrasena);
-  const bloqueada = !!f?.bloqueadoHasta && f.bloqueadoHasta > new Date();
+interface FilaLogin {
+  id: string;
+  nombre_completo: string;
+  hash_contrasena: string;
+  rol: Rol;
+  unidad_id: string;
+  intentos_fallidos: number;
+}
 
-  if (!f || !f.activo || bloqueada || !coincide) {
-    // Intento fallido de una cuenta existente y activa: contador atómico; al llegar a N bloquea y reinicia.
-    if (f?.activo && !bloqueada) {
-      const { intentosFallidos } = await prisma.funcionario.update({
-        where: { id: f.id },
-        data: { intentosFallidos: { increment: 1 } },
+export async function iniciarSesion(identificadorCuenta: string, contrasena: string) {
+  // Reserva atómica de un intento ANTES de verificar: solo MAX_INTENTOS verificaciones concurrentes
+  // pueden pasar por ciclo, así que las solicitudes en vuelo no sortean el bloqueo.
+  const [f] = await prisma.$queryRaw<FilaLogin[]>`
+    UPDATE funcionario SET intentos_fallidos = intentos_fallidos + 1
+    WHERE identificador_cuenta = ${identificadorCuenta} AND activo
+      AND (bloqueado_hasta IS NULL OR bloqueado_hasta <= now())
+      AND intentos_fallidos < ${MAX_INTENTOS}
+    RETURNING id, nombre_completo, hash_contrasena, rol, unidad_id, intentos_fallidos`;
+  // Sin fila (inexistente, inactiva o bloqueada) se verifica un hash falso para igualar el tiempo.
+  const coincide = await argon2.verify(f?.hash_contrasena ?? (await hashFalso), contrasena);
+
+  if (!f || !coincide) {
+    if (f && f.intentos_fallidos >= MAX_INTENTOS) {
+      await prisma.funcionario.updateMany({
+        where: { id: f.id, intentosFallidos: { gte: MAX_INTENTOS } },
+        data: { intentosFallidos: 0, bloqueadoHasta: new Date(Date.now() + BLOQUEO_MIN * 60_000) },
       });
-      if (intentosFallidos >= MAX_INTENTOS) {
-        await prisma.funcionario.update({
-          where: { id: f.id },
-          data: {
-            intentosFallidos: 0,
-            bloqueadoHasta: new Date(Date.now() + BLOQUEO_MIN * 60_000),
-          },
-        });
-      }
     }
     throw new ErrorHttp(401, MENSAJE_LOGIN);
   }
@@ -51,16 +57,22 @@ export async function iniciarSesion(identificadorCuenta: string, contrasena: str
     }),
   ]);
 
-  const token = jwt.sign({ rol: f.rol }, JWT_SECRET, {
+  const token = jwt.sign({}, JWT_SECRET, {
     algorithm: 'HS256',
     subject: f.id,
     jwtid: randomUUID(),
     expiresIn: TOKEN_TTL_SEG,
   });
+  const { exp } = jwt.decode(token) as jwt.JwtPayload;
   return {
     token,
-    expiraEn: new Date(Date.now() + TOKEN_TTL_SEG * 1000).toISOString(),
-    funcionario: { id: f.id, nombreCompleto: f.nombreCompleto, rol: f.rol, unidadId: f.unidadId },
+    expiraEn: new Date(exp! * 1000).toISOString(),
+    funcionario: {
+      id: f.id,
+      nombreCompleto: f.nombre_completo,
+      rol: f.rol,
+      unidadId: f.unidad_id,
+    },
   };
 }
 
@@ -77,7 +89,8 @@ export async function validarToken(token: string): Promise<Sesion> {
   let p: jwt.JwtPayload;
   try {
     const dec = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
-    if (typeof dec === 'string' || !dec.sub || !dec.jti || !dec.exp) throw new Error('payload');
+    if (typeof dec === 'string' || !dec.sub || !dec.jti || !dec.exp || !dec.iat)
+      throw new Error('payload');
     p = dec;
   } catch {
     throw new ErrorHttp(401, 'No autenticado');
@@ -86,7 +99,10 @@ export async function validarToken(token: string): Promise<Sesion> {
     prisma.sesionRevocada.findUnique({ where: { jti: p.jti! } }),
     prisma.funcionario.findUnique({ where: { id: p.sub! } }),
   ]);
-  if (revocada || !f?.activo) throw new ErrorHttp(401, 'No autenticado');
+  // shortcut: iat tiene precisión de segundos; un token emitido en el mismo segundo de la invalidación también se rechaza.
+  const invalidada =
+    !!f?.sesionesValidasDesde && p.iat! <= Math.floor(f.sesionesValidasDesde.getTime() / 1000);
+  if (revocada || !f?.activo || invalidada) throw new ErrorHttp(401, 'No autenticado');
   return { id: f.id, rol: f.rol, unidadId: f.unidadId, jti: p.jti!, exp: p.exp! };
 }
 

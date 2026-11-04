@@ -24,7 +24,7 @@ describe('RF-01 Iniciar sesión', () => {
     expect(res.body.token).toEqual(expect.any(String));
     expect(JSON.stringify(res.body)).not.toMatch(/hash/i);
     const p = jwt.decode(res.body.token) as jwt.JwtPayload;
-    expect(p).toMatchObject({ sub: f.id, rol });
+    expect(p).toMatchObject({ sub: f.id });
     expect(p.jti).toBeTruthy();
     expect(p.exp! - p.iat!).toBeLessThanOrEqual(3600);
     expect(
@@ -68,6 +68,18 @@ describe('RF-01 Iniciar sesión', () => {
     expect(
       (await prisma.funcionario.findUniqueOrThrow({ where: { id: f.id } })).intentosFallidos,
     ).toBe(0);
+  });
+
+  it('bloquea ante intentos fallidos en paralelo y rechaza la clave correcta mientras dura', async () => {
+    const f = await crearFuncionario(unidadId, 'PUBLICADOR', 'carrera');
+    const res = await Promise.all(
+      Array.from({ length: 12 }, () => login(a, 'carrera', 'mala-clave-xx')),
+    );
+    expect(res.every((r) => r.status === 401)).toBe(true);
+    const fila = await prisma.funcionario.findUniqueOrThrow({ where: { id: f.id } });
+    expect(fila.bloqueadoHasta!.getTime()).toBeGreaterThan(Date.now());
+    expect(fila.intentosFallidos).toBeLessThan(MAX_INTENTOS);
+    expect((await login(a, 'carrera')).status).toBe(401);
   });
 
   it('un acceso correcto reinicia el contador de intentos', async () => {

@@ -32,13 +32,11 @@ export async function crearCuenta(d: CrearCuentaInput) {
   const { contrasena, ...resto } = d;
   const hashContrasena = await argon2.hash(contrasena);
   try {
-    return await prisma.$transaction(async (tx) => {
-      await exigirUnidad(tx, d.unidadId);
-      return tx.funcionario.create({ data: { ...resto, hashContrasena }, select: PUBLICO });
-    });
+    return await prisma.funcionario.create({ data: { ...resto, hashContrasena }, select: PUBLICO });
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-      throw new ErrorHttp(409, 'El identificador de cuenta ya existe');
+    if (e instanceof Prisma.PrismaClientKnownRequestError) {
+      if (e.code === 'P2002') throw new ErrorHttp(409, 'El identificador de cuenta ya existe');
+      if (e.code === 'P2003') throw new ErrorHttp(400, 'Unidad inexistente');
     }
     throw e;
   }
@@ -84,9 +82,16 @@ async function modificar(
     );
     // Reactivar una cuenta también limpia su bloqueo por intentos.
     const reactiva = cambios.activo === true && !f.activo;
+    // Desactivar, reactivar o cambiar el rol invalida los tokens ya emitidos.
+    const cambiaActivo = cambios.activo !== undefined && cambios.activo !== f.activo;
+    const cambiaRol = cambios.rol !== undefined && cambios.rol !== f.rol;
     return tx.funcionario.update({
       where: { id },
-      data: { ...cambios, ...(reactiva && { intentosFallidos: 0, bloqueadoHasta: null }) },
+      data: {
+        ...cambios,
+        ...(reactiva && { intentosFallidos: 0, bloqueadoHasta: null }),
+        ...((cambiaActivo || cambiaRol) && { sesionesValidasDesde: new Date() }),
+      },
       select: PUBLICO,
     });
   });

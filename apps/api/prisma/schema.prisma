@@ -82,34 +82,35 @@ enum TipoNotificacion {
 }
 
 model Unidad {
-  id              String          @id @default(uuid()) @db.Uuid
-  nombre          String          @unique @db.VarChar(120)
-  area            AreaUnidad
-  funcionarios    Funcionario[]
-  publicaciones   Publicacion[]
+  id               String            @id @default(uuid()) @db.Uuid
+  nombre           String            @unique @db.VarChar(120)
+  area             AreaUnidad
+  funcionarios     Funcionario[]
+  publicaciones    Publicacion[]
   establecimientos Establecimiento[]
 
   @@map("unidad")
 }
 
 model Funcionario {
-  id                  String    @id @default(uuid()) @db.Uuid
-  nombreCompleto      String    @map("nombre_completo") @db.VarChar(120)
-  identificadorCuenta String    @unique @map("identificador_cuenta") @db.VarChar(60)
-  hashContrasena      String    @map("hash_contrasena") @db.VarChar(255)
-  rol                 RolFuncionario
-  unidadId            String    @map("unidad_id") @db.Uuid
-  activo              Boolean   @default(true)
-  intentosFallidos    Int       @default(0) @map("intentos_fallidos") @db.SmallInt
-  bloqueadoHasta      DateTime? @map("bloqueado_hasta") @db.Timestamptz(6)
-  creadoEn            DateTime  @default(now()) @map("creado_en") @db.Timestamptz(6)
-  actualizadoEn       DateTime  @updatedAt @map("actualizado_en") @db.Timestamptz(6)
+  id                   String         @id @default(uuid()) @db.Uuid
+  nombreCompleto       String         @map("nombre_completo") @db.VarChar(120)
+  identificadorCuenta  String         @unique @map("identificador_cuenta") @db.VarChar(60)
+  hashContrasena       String         @map("hash_contrasena") @db.VarChar(255)
+  rol                  RolFuncionario
+  unidadId             String         @map("unidad_id") @db.Uuid
+  activo               Boolean        @default(true)
+  intentosFallidos     Int            @default(0) @map("intentos_fallidos") @db.SmallInt
+  bloqueadoHasta       DateTime?      @map("bloqueado_hasta") @db.Timestamptz(6)
+  sesionesValidasDesde DateTime?      @map("sesiones_validas_desde") @db.Timestamptz(6)
+  creadoEn             DateTime       @default(now()) @map("creado_en") @db.Timestamptz(6)
+  actualizadoEn        DateTime       @updatedAt @map("actualizado_en") @db.Timestamptz(6)
 
-  unidad                    Unidad            @relation(fields: [unidadId], references: [id])
-  publicacionesAutor        Publicacion[]     @relation("PublicacionAutor")
-  publicacionesAprobador    Publicacion[]     @relation("PublicacionAprobador")
-  establecimientosAutor     Establecimiento[] @relation("EstablecimientoAutor")
-  establecimientosAprobador Establecimiento[] @relation("EstablecimientoAprobador")
+  unidad                    Unidad              @relation(fields: [unidadId], references: [id])
+  publicacionesAutor        Publicacion[]       @relation("PublicacionAutor")
+  publicacionesAprobador    Publicacion[]       @relation("PublicacionAprobador")
+  establecimientosAutor     Establecimiento[]   @relation("EstablecimientoAutor")
+  establecimientosAprobador Establecimiento[]   @relation("EstablecimientoAprobador")
   auditoria                 RegistroAuditoria[]
   sesionesRevocadas         SesionRevocada[]
 
@@ -239,14 +240,14 @@ model Notificacion {
 }
 
 model RegistroAuditoria {
-  id                String             @id @default(uuid()) @db.Uuid
-  funcionarioId     String             @map("funcionario_id") @db.Uuid
-  accion            String             @db.VarChar(40)
-  entidad           String             @db.VarChar(40)
-  entidadId         String             @map("entidad_id") @db.Uuid
-  estadoResultante  EstadoPublicacion? @map("estado_resultante")
-  detalle           String?
-  fecha             DateTime           @default(now()) @db.Timestamptz(6)
+  id               String             @id @default(uuid()) @db.Uuid
+  funcionarioId    String             @map("funcionario_id") @db.Uuid
+  accion           String             @db.VarChar(40)
+  entidad          String             @db.VarChar(40)
+  entidadId        String             @map("entidad_id") @db.Uuid
+  estadoResultante EstadoPublicacion? @map("estado_resultante")
+  detalle          String?
+  fecha            DateTime           @default(now()) @db.Timestamptz(6)
 
   funcionario Funcionario @relation(fields: [funcionarioId], references: [id])
 

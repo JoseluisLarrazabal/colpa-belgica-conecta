@@ -5,9 +5,15 @@ import type { z } from 'zod';
 export const validar =
   (schema: z.ZodType, parte: 'body' | 'params' = 'body'): RequestHandler =>
   (req, res, next) => {
-    const r = schema.safeParse(req[parte]);
+    const entrada: unknown = req[parte];
+    if (typeof entrada !== 'object' || entrada === null || Array.isArray(entrada)) {
+      res.status(400).json({ error: 'El cuerpo debe ser un objeto JSON' });
+      return;
+    }
+    const r = schema.safeParse(entrada);
     if (!r.success) {
-      res.status(400).json({ error: 'Datos inválidos', campos: r.error.flatten().fieldErrors });
+      const { fieldErrors, formErrors } = r.error.flatten();
+      res.status(400).json({ error: 'Datos inválidos', campos: fieldErrors, errores: formErrors });
       return;
     }
     req[parte] = r.data as never;
