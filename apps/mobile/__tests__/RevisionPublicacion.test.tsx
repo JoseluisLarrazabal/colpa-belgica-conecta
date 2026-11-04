@@ -1,0 +1,66 @@
+import '../lib/zod-es';
+import { render, screen } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { PaperProvider } from 'react-native-paper';
+import { RevisionPublicacion } from '../features/publicaciones/RevisionPublicacion';
+import type { PublicacionDto } from '../features/publicaciones/tipos';
+import { tema } from '../theme';
+
+jest.mock('expo-router', () => ({
+  router: { dismissTo: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn() },
+}));
+jest.mock('expo-network', () => ({
+  useNetworkState: () => ({ isConnected: true, isInternetReachable: true }),
+}));
+jest.mock(
+  'react-native-safe-area-context',
+  () => jest.requireActual('react-native-safe-area-context/jest/mock').default,
+);
+
+const pub = (extra: Partial<PublicacionDto> = {}): PublicacionDto => ({
+  id: 'p1',
+  modulo: 'SALUD',
+  tipo: 'COMUNICADO_SANITARIO',
+  titulo: 'Comunicado',
+  detalle: null,
+  fechaInicio: null,
+  fechaFin: null,
+  hora: null,
+  lugar: null,
+  poblacionObjetivo: null,
+  requisitos: null,
+  tipoVacuna: null,
+  destacado: false,
+  estado: 'EN_REVISION',
+  observaciones: null,
+  unidadId: 'u1',
+  autorId: 'a1',
+  publicadoEn: null,
+  actualizadoEn: '2026-11-01T10:00:00.000Z',
+  ...extra,
+});
+
+const montar = (p: PublicacionDto) =>
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <PaperProvider theme={tema}>
+        <RevisionPublicacion p={p} />
+      </PaperProvider>
+    </QueryClientProvider>,
+  );
+
+it('no promete notificación push: dice dónde aparecerá al publicar', async () => {
+  await montar(pub());
+  expect(
+    screen.getByText('Al publicar, aparecerá para los habitantes en Inicio y en Salud'),
+  ).toBeTruthy();
+  expect(screen.queryByText(/notificaci/i)).toBeNull();
+});
+
+it('muestra "Destacado en Inicio" solo si la publicación es destacada', async () => {
+  const { unmount } = await montar(pub({ destacado: true }));
+  expect(screen.getByText('Destacado en Inicio')).toBeTruthy();
+  await unmount();
+  await montar(pub());
+  expect(screen.queryByText('Destacado en Inicio')).toBeNull();
+});

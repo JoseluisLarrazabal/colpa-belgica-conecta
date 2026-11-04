@@ -21,7 +21,13 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-router", "expo-status-bar"],
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-secure-store",
+      "expo-font",
+      ["expo-image-picker", { "photosPermission": "Para adjuntar imágenes a las publicaciones." }]
+    ],
     "scheme": "colpabelgica"
   }
 }
