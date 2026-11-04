@@ -1,4 +1,6 @@
 import {
+  CAMPOS_EXTRA,
+  camposExtra,
   fichaSchema,
   puedeTransicionar,
   TRANSICIONES,
@@ -11,6 +13,7 @@ import {
 import { prisma } from '../db';
 import { ErrorHttp } from '../middleware/error';
 import type { Prisma, Publicacion } from '../generated/prisma/client';
+import { detalleValidacion } from '../middleware/validar';
 import { registrar } from './auditoria.service';
 
 type Tx = Prisma.TransactionClient;
@@ -48,11 +51,11 @@ const aColumnas = (f: FichaInput) => ({
 function validarFicha(entrada: unknown): FichaInput {
   const r = fichaSchema.safeParse(entrada);
   if (r.success) return r.data;
-  const { fieldErrors, formErrors } = r.error.flatten();
-  throw new ErrorHttp(400, 'Faltan campos obligatorios o son inválidos', {
-    campos: fieldErrors,
-    errores: formErrors,
-  });
+  throw new ErrorHttp(
+    400,
+    'Faltan campos obligatorios o son inválidos',
+    detalleValidacion(r.error),
+  );
 }
 
 /** Bloquea la fila (FOR UPDATE) y la devuelve; serializa cambios concurrentes sobre la misma publicación. */
@@ -62,7 +65,7 @@ async function bloquear(tx: Tx, id: string) {
 }
 
 /** Publicación de la unidad del Publicador, bloqueada y en Borrador. 404 si es de otra unidad (RNF-31). */
-async function borradorPropio(tx: Tx, id: string, f: Actor) {
+export async function borradorPropio(tx: Tx, id: string, f: Actor) {
   const p = await bloquear(tx, id);
   if (!p || p.unidadId !== f.unidadId) throw noExiste();
   if (p.estado !== 'BORRADOR') {
@@ -70,7 +73,6 @@ async function borradorPropio(tx: Tx, id: string, f: Actor) {
   }
   return p;
 }
-export { borradorPropio };
 
 export const crear = (entrada: FichaInput, f: Actor) =>
   prisma.$transaction(async (tx) => {
@@ -89,7 +91,18 @@ export const crear = (entrada: FichaInput, f: Actor) =>
 export const editar = (id: string, cambios: EditarFichaInput, f: Actor) =>
   prisma.$transaction(async (tx) => {
     const actual = await borradorPropio(tx, id, f);
+    // La ficha no cambia de tipo: un campo extra de otro tipo es un error, no se ignora en silencio.
+    const propios = camposExtra(actual.tipo);
+    const ajeno = Object.keys(cambios).find(
+      (k) => !propios.includes(k) && CAMPOS_EXTRA.includes(k),
+    );
+    if (ajeno) throw new ErrorHttp(400, `El campo ${ajeno} no corresponde al tipo ${actual.tipo}`);
     const ficha = validarFicha({ ...aDto(actual), ...cambios });
+    const nueva = aColumnas(ficha);
+    const igual = (Object.keys(nueva) as (keyof typeof nueva)[]).every(
+      (k) => JSON.stringify(nueva[k]) === JSON.stringify(actual[k as keyof typeof actual]),
+    );
+    if (igual) return aDto(actual); // sin cambios reales no se escribe ni se audita
     const p = await tx.publicacion.update({ where: { id }, data: aColumnas(ficha) });
     await registrar(tx, {
       funcionarioId: f.id,
@@ -120,6 +133,9 @@ export const descartar = (id: string, f: Actor) =>
   });
 
 /** El Aprobador nunca ve borradores; el Publicador solo ve su unidad. Fuera de eso, 404. */
+// `visible` y `puedeVer` expresan la misma regla de acceso: cambiar una exige cambiar la otra.
+export const puedeVer = (p: Pick<Publicacion, 'unidadId' | 'estado'>, f: Actor) =>
+  f.rol === 'APROBADOR' ? p.estado !== 'BORRADOR' : p.unidadId === f.unidadId;
 const visible = (f: Actor): Prisma.PublicacionWhereInput =>
   f.rol === 'APROBADOR' ? { estado: { not: 'BORRADOR' } } : { unidadId: f.unidadId };
 
@@ -148,7 +164,7 @@ export async function obtener(id: string, f: Actor) {
 /** Efecto de cada acción sobre la fila, además del cambio de estado. */
 const EFECTOS: Record<Accion, (f: Actor, observaciones?: string) => Prisma.PublicacionUpdateInput> =
   {
-    ENVIAR_REVISION: () => ({}),
+    ENVIAR_REVISION: () => ({ observaciones: null }), // el historial queda en la auditoría
     PUBLICAR: (f) => ({ publicadoEn: new Date(), aprobador: { connect: { id: f.id } } }),
     DEVOLVER: (_f, observaciones) => ({ observaciones }),
     ARCHIVAR: () => ({ archivadoEn: new Date() }),
@@ -167,13 +183,8 @@ export async function transicionar(
   return prisma.$transaction(async (tx) => {
     const p = await bloquear(tx, id);
     // No filtrar por unidad revelaría la existencia; el Aprobador no ve borradores de nadie.
-    if (
-      !p ||
-      (f.rol === 'PUBLICADOR' && p.unidadId !== f.unidadId) ||
-      (f.rol === 'APROBADOR' && p.estado === 'BORRADOR')
-    ) {
-      throw noExiste();
-    }
+    if (!p || !puedeVer(p, f)) throw noExiste();
+    // segunda guarda: la ruta ya filtra por rol
     if (TRANSICIONES[accion].rol !== f.rol) throw new ErrorHttp(403, 'Acceso denegado');
     const hacia = puedeTransicionar(p.estado, accion, f.rol);
     if (!hacia) {
@@ -190,7 +201,13 @@ export async function transicionar(
       where: { id },
       data: { estado: hacia, ...EFECTOS[accion](f, observaciones) },
     });
-    await registrar(tx, { funcionarioId: f.id, accion, entidadId: id, estadoResultante: hacia });
+    await registrar(tx, {
+      funcionarioId: f.id,
+      accion,
+      entidadId: id,
+      estadoResultante: hacia,
+      ...(accion === 'DEVOLVER' && { detalle: observaciones }),
+    });
     return aDto(actualizada);
   });
 }

@@ -142,7 +142,9 @@ describe('RF-08 Devolver publicación con observaciones', () => {
       accion: 'DEVOLVER',
       estadoResultante: 'BORRADOR',
     });
+    expect((await auditoriaDe(id)).at(-1)!.detalle).toBe('Falta el horario');
     expect((await api.accion(a, pub, id, 'enviar')).status).toBe(200); // ciclo de corrección
+    expect((await api.obtener(a, pub, id)).body.observaciones).toBeNull(); // el historial queda en la auditoría
   });
 
   it.each([{}, { observaciones: '' }, { observaciones: '   ' }])(
@@ -236,6 +238,41 @@ describe('RF-10 Consultar el registro de auditoría', () => {
     expect((await consulta(admin, '?publicacionId=no-es-uuid')).status).toBe(400);
   });
 
+  it('filtra por desde/hasta (límites exactos), estado, funcionario y paginación', async () => {
+    const id = await enEstado('BORRADOR');
+    const base = (await auditoriaDe(id))[0]!;
+    const mk = (min: number, accion: string, estado: 'BORRADOR' | 'EN_REVISION') =>
+      prisma.registroAuditoria.create({
+        data: {
+          funcionarioId: pubFuncId,
+          accion,
+          entidad: 'publicacion',
+          entidadId: id,
+          estadoResultante: estado,
+          fecha: new Date(Date.UTC(2030, 0, 1, 0, min)),
+        },
+      });
+    await mk(0, 'EDITAR', 'BORRADOR');
+    await mk(1, 'EDITAR', 'BORRADOR');
+    await mk(2, 'ENVIAR_REVISION', 'EN_REVISION');
+    const q = (s: string) => `?publicacionId=${id}&${s}`;
+    const accs = async (s: string) =>
+      ((await consulta(admin, q(s))).body.registros as { fecha: string }[]).map((r) =>
+        r.fecha.slice(11, 16),
+      );
+    const d = '2030-01-01T00:01:00.000Z';
+    expect(await accs(`desde=${d}`)).toEqual(['00:01', '00:02']); // desde es inclusivo
+    expect(await accs(`hasta=${d}`)).toEqual([
+      base.fecha.toISOString().slice(11, 16),
+      '00:00',
+      '00:01',
+    ]);
+    expect(await accs(`desde=${d}&hasta=${d}`)).toEqual(['00:01']);
+    expect(await accs('estado=EN_REVISION')).toEqual(['00:02']);
+    expect(await accs(`funcionarioId=${pubFuncId}&limite=1&desplazamiento=1`)).toEqual(['00:00']);
+    expect((await consulta(admin, q('accion=NO_EXISTE'))).status).toBe(400);
+  });
+
   it('solo el Administrador técnico consulta', async () => {
     expect((await consulta(pub)).status).toBe(403);
     expect((await consulta(apr)).status).toBe(403);
@@ -252,6 +289,9 @@ describe('RF-10 Consultar el registro de auditoría', () => {
     ).rejects.toThrow();
     await expect(
       prisma.registroAuditoria.deleteMany({ where: { entidadId: id } }),
+    ).rejects.toThrow();
+    await expect(
+      prisma.$executeRawUnsafe('TRUNCATE TABLE registro_auditoria CASCADE'),
     ).rejects.toThrow();
     expect(await auditoriaDe(id)).toHaveLength(1);
   });

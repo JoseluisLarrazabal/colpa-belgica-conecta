@@ -30,6 +30,6 @@ export function cloudinary() {
   if (!cloudName || !apiKey || !apiSecret) return null;
   // Una carpeta por entorno (2.4.4).
   const carpeta =
-    process.env['CLOUDINARY_FOLDER'] ?? `colpa/${process.env['NODE_ENV'] ?? 'development'}`;
+    process.env['CLOUDINARY_FOLDER'] || `colpa/${process.env['NODE_ENV'] ?? 'development'}`;
   return { cloudName, apiKey, apiSecret, carpeta };
 }

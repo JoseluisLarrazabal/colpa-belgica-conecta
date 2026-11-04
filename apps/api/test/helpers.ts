@@ -10,9 +10,13 @@ const hashPromise = argon2.hash(CLAVE);
 export const app = () => crearApp({ loginMax: 1000 });
 
 export async function limpiar() {
-  await prisma.$executeRawUnsafe(
-    'TRUNCATE TABLE sesion_revocada, registro_auditoria, funcionario, unidad CASCADE',
-  );
+  // El trigger anti-TRUNCATE de la auditoría se salta solo aquí (el rol de pruebas es superusuario).
+  await prisma.$transaction([
+    prisma.$executeRawUnsafe('SET LOCAL session_replication_role = replica'),
+    prisma.$executeRawUnsafe(
+      'TRUNCATE TABLE sesion_revocada, registro_auditoria, funcionario, unidad CASCADE',
+    ),
+  ]);
 }
 
 export const crearUnidad = (nombre = 'Salud') =>

@@ -13,7 +13,7 @@ function credenciales() {
 }
 
 /** Cloudinary: parámetros ordenados `k=v&...` + secreto, SHA-1 hex (sin llamada de red). */
-const firmar = (params: Record<string, string | number>, secreto: string) =>
+const firmar = (params: Record<string, string | number | boolean>, secreto: string) =>
   createHash('sha1')
     .update(
       Object.entries(params)
@@ -25,15 +25,29 @@ const firmar = (params: Record<string, string | number>, secreto: string) =>
 
 /** Carpeta propia de cada publicación: ata el archivo subido a esta publicación. */
 const carpetaDe = (base: string, publicacionId: string) => `${base}/${publicacionId}`;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const topeExcedido = () => new ErrorHttp(409, `Máximo ${MAX_IMAGENES} imágenes por publicación`);
 
-/** RF-05: parámetros de subida firmada; el móvil sube directo a Cloudinary y luego registra la imagen. */
+/**
+ * RF-05: parámetros de subida firmada; el móvil sube directo a Cloudinary y luego registra la imagen.
+ * `public_id` lleva la ruta completa (sin `folder`): funciona igual en modo de carpetas fijo y dinámico.
+ */
+// shortcut: el límite se valida al firmar y al registrar; firmas repetidas pueden dejar archivos huérfanos en Cloudinary hasta implementar limpieza (destroy) — aceptable para ~20 funcionarios.
 export async function firmaSubida(publicacionId: string, f: Actor) {
   const c = credenciales();
-  await prisma.$transaction((tx) => borradorPropio(tx, publicacionId, f));
+  const p = await prisma.publicacion.findUnique({
+    where: { id: publicacionId },
+    select: { unidadId: true, estado: true, _count: { select: { imagenes: true } } },
+  });
+  if (!p || p.unidadId !== f.unidadId) throw new ErrorHttp(404, 'La publicación no existe');
+  if (p.estado !== 'BORRADOR') {
+    throw new ErrorHttp(409, 'Solo se puede modificar una publicación en Borrador');
+  }
+  if (p._count.imagenes >= MAX_IMAGENES) throw topeExcedido();
   const firmados = {
     allowed_formats: FORMATOS_IMAGEN.join(','),
-    folder: carpetaDe(c.carpeta, publicacionId),
-    public_id: randomUUID(),
+    overwrite: false, // una firma reutilizada no puede reemplazar una imagen ya aprobada
+    public_id: `${carpetaDe(c.carpeta, publicacionId)}/${randomUUID()}`,
     timestamp: Math.floor(Date.now() / 1000),
   };
   return {
@@ -45,27 +59,22 @@ export async function firmaSubida(publicacionId: string, f: Actor) {
   };
 }
 
-/** Registra una imagen ya subida; debe pertenecer a nuestra nube y a la carpeta de esta publicación. */
+/** Registra una imagen ya subida: solo el public_id emitido al firmar; la URL la construye el servidor. */
 export function registrar(publicacionId: string, d: RegistrarImagenInput, f: Actor) {
   const c = credenciales();
   const prefijo = `${carpetaDe(c.carpeta, publicacionId)}/`;
-  const ext = d.url.split('.').pop()?.toLowerCase() ?? '';
-  const urlOk =
-    d.url.startsWith(`https://res.cloudinary.com/${c.cloudName}/image/upload/`) &&
-    d.url.includes(`/${d.publicId}.`) &&
-    (FORMATOS_IMAGEN as readonly string[]).includes(ext);
-  const idOk = d.publicId.startsWith(prefijo) && /^[\w-]+$/.test(d.publicId.slice(prefijo.length));
-  if (!urlOk || !idOk)
-    throw new ErrorHttp(400, 'Imagen no admitida: formato o ubicación inválidos');
+  if (!d.publicId.startsWith(prefijo) || !UUID.test(d.publicId.slice(prefijo.length)))
+    throw new ErrorHttp(400, 'Imagen no admitida: identificador inválido');
+  const url = `https://res.cloudinary.com/${c.cloudName}/image/upload/${d.publicId}.${d.formato}`;
 
   return prisma.$transaction(async (tx) => {
     await borradorPropio(tx, publicacionId, f); // bloquea la fila: el tope de imágenes no se sortea en paralelo
     const total = await tx.imagen.count({ where: { publicacionId } });
-    if (total >= MAX_IMAGENES)
-      throw new ErrorHttp(409, `Máximo ${MAX_IMAGENES} imágenes por publicación`);
+    if (total >= MAX_IMAGENES) throw topeExcedido();
+    const { _max } = await tx.imagen.aggregate({ where: { publicacionId }, _max: { orden: true } });
     try {
       return await tx.imagen.create({
-        data: { publicacionId, url: d.url, publicId: d.publicId, orden: total },
+        data: { publicacionId, url, publicId: d.publicId, orden: (_max.orden ?? -1) + 1 },
       });
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {

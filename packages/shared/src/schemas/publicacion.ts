@@ -47,19 +47,17 @@ export const fichaSchema = z
   });
 export type FichaInput = z.infer<typeof fichaSchema>;
 
+/** Campos extra de cada tipo (para rechazar en la edición los de otro tipo). */
+export const camposExtra = (tipo: string | null) =>
+  Object.keys((tipo && EXTRAS[tipo as TipoPublicacion]) || {});
+const extrasTodos: z.ZodRawShape = Object.assign({}, ...Object.values(EXTRAS));
+export const CAMPOS_EXTRA = Object.keys(extrasTodos);
+const baseEditable: Partial<typeof base> = { ...base };
+delete baseEditable.modulo;
+
 /** Edición parcial: no cambia módulo ni tipo; el resultado combinado se revalida con `fichaSchema`. */
 export const editarFichaSchema = z
-  .object({
-    titulo: base.titulo,
-    detalle: base.detalle,
-    fechaInicio: base.fechaInicio,
-    fechaFin: base.fechaFin,
-    hora: base.hora,
-    lugar: base.lugar,
-    poblacionObjetivo: base.poblacionObjetivo,
-    requisitos: base.requisitos,
-    tipoVacuna: texto(100),
-  })
+  .object({ ...baseEditable, ...extrasTodos })
   .partial()
   .strict()
   .refine((v) => Object.keys(v).length > 0, { message: 'Indica al menos un campo a modificar' });
@@ -86,23 +84,23 @@ export const FORMATOS_IMAGEN = ['jpg', 'jpeg', 'png', 'webp'] as const;
 
 export const registrarImagenSchema = z.object({
   publicId: z.string().min(1).max(255),
-  url: z.url({ protocol: /^https$/ }).max(500),
+  formato: z.enum(FORMATOS_IMAGEN),
 });
 export type RegistrarImagenInput = z.infer<typeof registrarImagenSchema>;
 
 export const imagenParamSchema = z.object({ id: z.uuid(), imagenId: z.uuid() });
 
+/** Acciones de auditoría: las de transición más las de alta, edición y descarte del borrador. */
+export const ACCIONES_AUDITORIA = [...ACCIONES, 'CREAR', 'EDITAR', 'DESCARTAR'] as const;
+
 /** RF-10: filtros de la consulta de auditoría (Tabla 2.64). */
 export const consultarAuditoriaSchema = z.object({
   publicacionId: z.uuid().optional(),
   funcionarioId: z.uuid().optional(),
-  accion: z.string().trim().min(1).max(40).optional(),
+  accion: z.enum(ACCIONES_AUDITORIA).optional(),
   estado: estadoSchema.optional(),
   desde: z.iso.datetime({ offset: true }).optional(),
   hasta: z.iso.datetime({ offset: true }).optional(),
   ...paginacion,
 });
 export type ConsultarAuditoriaInput = z.infer<typeof consultarAuditoriaSchema>;
-
-/** Acciones de auditoría: las de transición más las de alta, edición y descarte del borrador. */
-export const ACCIONES_AUDITORIA = [...ACCIONES, 'CREAR', 'EDITAR', 'DESCARTAR'] as const;

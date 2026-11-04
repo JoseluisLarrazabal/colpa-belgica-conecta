@@ -78,6 +78,23 @@ describe('RF-04 Elaborar publicación con ficha estructurada', () => {
     expect((await api.editar(a, pub, body.id, { tipo: 'FERIA' })).status).toBe(400);
   });
 
+  it('edición: campo de otro tipo => 400 con el nombre; sin cambios reales => 200 sin auditar', async () => {
+    const resto: Record<string, unknown> = { ...FICHA };
+    delete resto['tipoVacuna'];
+    const jornada = await api.crear(a, pub, { ...resto, tipo: 'JORNADA_ATENCION' });
+    expect(jornada.status).toBe(201);
+    const r = await api.editar(a, pub, jornada.body.id, { tipoVacuna: 'X' });
+    expect(r.status).toBe(400);
+    expect(JSON.stringify(r.body)).toContain('tipoVacuna');
+    const { body } = await api.crear(a, pub);
+    const igual = await api.editar(a, pub, body.id, {
+      lugar: FICHA.lugar,
+      tipoVacuna: FICHA.tipoVacuna,
+    });
+    expect(igual.status).toBe(200);
+    expect((await auditoriaDe(body.id)).map((x) => x.accion)).toEqual(['CREAR']);
+  });
+
   it('un Publicador de otra unidad no ve ni edita la publicación (404, sin filtrar existencia)', async () => {
     const { body } = await api.crear(a, pub);
     expect((await api.editar(a, pubOtraUnidad, body.id, { lugar: 'X' })).status).toBe(404);
