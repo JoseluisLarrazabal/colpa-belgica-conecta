@@ -4,9 +4,8 @@
 
 - Plan aprobado: [plan-puesta-en-marcha.md](plan-puesta-en-marcha.md). Meta: demo del 30% ≈ 1-dic-2026 (núcleo 13 RF: RF-01..10, 11, 15, 16).
 - Fuente de requisitos: `../Documentos para mi proyecto de titulacion/Documento PG - Trabajo/fuente/03-cap2a..d.md`. SRS IEEE 830 generado: `Documento PG - Trabajo/SRS_ColpaBelgicaConecta_v1.pdf` (`build_srs.py`).
-- **Mergeado:** #1 Fase 0 (monorepo, esquema, CI) · #2 RF-01..03 (login, cuentas, roles).
-- **En curso:** `feat/rf-04-11-publicaciones` (motor de publicaciones, imágenes, máquina de estados, auditoría).
-- **Progreso real: 3/35 RF** (`pnpm progreso`; solo tests de `apps/*` sin fallos).
+- **Mergeado:** #1 Fase 0 · #2 RF-01..03 (login, cuentas, roles) · #3 diseño C · #4 RF-04..11 (motor de publicaciones, imágenes, máquina de estados, auditoría).
+- **Progreso real: 11/35 RF (31,4 %)** (`pnpm progreso`). **Todo es API**: todavía no hay pantallas. La demo del tutor exige la app móvil (siguiente bloque).
 
 ## Diseño (aprobado por el CTO 2026-11-04)
 
@@ -29,8 +28,14 @@
 
 - Codex vuelve a tener cuota (cuenta nueva, 2026-11-04). Fase 0: sin defectos. Auth: 1 hallazgo (iat por segundo) corregido; `verify-fix` = fixes_root_cause.
 
+## Deuda registrada
+
+- Imágenes: sin reserva de cupos de subida ni `destroy` en Cloudinary; firmas repetidas o borrados dejan archivos huérfanos (costo, requiere funcionario autenticado). Verificar firma/carpeta con la cuenta real de Cloudinary (los tests no usan red).
+- Auditoría: en producción, si el rol de la app no es dueño de la tabla, `REVOKE UPDATE, DELETE, TRUNCATE` sobre `registro_auditoria`.
+- Decisiones donde la tesis calla (reflejar en el Documento PG): máx. 4 imágenes jpg/jpeg/png/webp; Publicador limitado a su unidad; Aprobador ve la cola En revisión de todas las unidades y nunca borradores; descartar prohibido si ya fue enviado a revisión.
+
 ## Pendiente
 
 - CTO: `railway login` y `eas login` (entorno de pruebas y development build Android).
-- Siguiente: RF-15/16 (lectura del habitante) + app móvil del panel con el diseño C.
+- Siguiente: RF-15/16 (API de lectura del habitante) + app móvil (panel y habitante) con el diseño C.
 - Puerto 5432 ocupado en esta máquina: `DB_PORT=5440` en `.env`.
