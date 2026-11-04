@@ -75,6 +75,19 @@ export const listarPublicacionesSchema = z.object({
 });
 export type ListarPublicacionesInput = z.infer<typeof listarPublicacionesSchema>;
 
+/** RF-15: filtros de la lista pública (Tabla 2.64); el tipo, si se da, debe pertenecer al módulo. */
+export const listarPublicasSchema = z
+  .object({
+    modulo: z.enum(MODULOS).optional(),
+    tipo: z.enum(TIPOS as [TipoPublicacion]).optional(),
+    ...paginacion,
+  })
+  .refine((q) => !q.modulo || !q.tipo || tipoPerteneceAModulo(q.modulo, q.tipo), {
+    path: ['tipo'],
+    message: 'El tipo no corresponde al módulo',
+  });
+export type ListarPublicasInput = z.infer<typeof listarPublicasSchema>;
+
 export const devolverSchema = z.object({ observaciones: z.string().trim().max(2000).optional() });
 export type DevolverInput = z.infer<typeof devolverSchema>;
 
