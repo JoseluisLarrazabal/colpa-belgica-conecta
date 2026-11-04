@@ -23,9 +23,26 @@ const EDITABLES = [
   'requisitos',
 ] as const;
 
+export const MSG_VACIO_EDICION = 'Este campo no puede quedar vacío al editar';
+
 /**
- * Cambios para PATCH: solo campos no vacíos y distintos de lo guardado.
- * La API rechaza strings vacíos en la edición, por eso un campo borrado no se envía.
+ * Campos que tenían valor y el usuario dejó vacíos. editarFichaSchema solo acepta strings no
+ * vacíos (sin null), así que no hay forma de borrarlos por PATCH: el formulario bloquea el guardado.
+ */
+export function vaciados(
+  valores: Record<string, unknown>,
+  actual: PublicacionDto,
+  extras: readonly string[],
+): string[] {
+  const previo = actual as unknown as Record<string, string | null>;
+  return [...EDITABLES, ...extras].filter(
+    (k) => !String(valores[k] ?? '').trim() && (previo[k] ?? '') !== '',
+  );
+}
+
+/**
+ * Cambios para PATCH: solo campos no vacíos y distintos de lo guardado (los vacíos se
+ * reportan con `vaciados`) y `destacado` si cambió.
  */
 export function parche(
   valores: Record<string, unknown>,
@@ -33,11 +50,13 @@ export function parche(
   extras: readonly string[],
 ): EditarFichaInput {
   const previo = actual as unknown as Record<string, string | null>;
-  const out: Record<string, string> = {};
+  const out: Record<string, string | boolean> = {};
   for (const k of [...EDITABLES, ...extras]) {
     const nuevo = String(valores[k] ?? '').trim();
     if (nuevo && nuevo !== (previo[k] ?? '')) out[k] = nuevo;
   }
+  if (typeof valores.destacado === 'boolean' && valores.destacado !== actual.destacado)
+    out.destacado = valores.destacado;
   return out as EditarFichaInput;
 }
 

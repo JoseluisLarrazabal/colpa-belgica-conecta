@@ -1,6 +1,6 @@
 import '../lib/zod-es';
 import { fichaSchema, type FichaInput } from '@colpa/shared';
-import { moduloDeTipo, parche, progresoFicha } from '../features/publicaciones/ficha';
+import { moduloDeTipo, parche, progresoFicha, vaciados } from '../features/publicaciones/ficha';
 import type { PublicacionDto } from '../features/publicaciones/tipos';
 
 const completa = {
@@ -51,6 +51,7 @@ describe('parche de edición', () => {
   const actual = {
     ...completa,
     estado: 'BORRADOR',
+    destacado: false,
     hora: '08:00',
     imagenes: [],
   } as unknown as PublicacionDto;
@@ -64,6 +65,30 @@ describe('parche de edición', () => {
     expect(parche({ ...completa, tipoVacuna: 'Polio' }, actual, ['tipoVacuna'])).toEqual({
       tipoVacuna: 'Polio',
     });
+  });
+});
+
+describe('destacado y campos vaciados', () => {
+  const actual = { ...completa, estado: 'BORRADOR', destacado: false } as unknown as PublicacionDto;
+
+  it('envía destacado solo si cambió', () => {
+    expect(parche({ ...completa, destacado: true }, actual, [])).toEqual({ destacado: true });
+    expect(parche({ ...completa, destacado: false }, actual, [])).toEqual({});
+    expect(parche({ ...completa, destacado: false }, { ...actual, destacado: true }, [])).toEqual({
+      destacado: false,
+    });
+  });
+
+  it('detecta los campos con valor que el usuario dejó vacíos', () => {
+    const v = { ...completa, lugar: '  ', tipoVacuna: '' };
+    expect(vaciados(v, actual, ['tipoVacuna'])).toEqual(['lugar', 'tipoVacuna']);
+    expect(parche(v, actual, ['tipoVacuna'])).toEqual({});
+  });
+
+  it('un campo que ya estaba vacío no cuenta como vaciado', () => {
+    expect(vaciados({ ...completa, requisitos: '' }, { ...actual, requisitos: null }, [])).toEqual(
+      [],
+    );
   });
 });
 

@@ -1,6 +1,5 @@
 import { Image, StyleSheet, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { EstadoChip, estadoVisual } from '../../components/EstadoChip';
 import { FichaLista } from '../../components/FichaLista';
 import { Txt } from '../../components/Txt';
 import { RADIO, colores } from '../../theme';
@@ -44,11 +43,6 @@ export function VistaPublicacion({ p }: { p: PublicacionDto }) {
     </View>
   );
 }
-
-/** Estado de una publicación del panel, con "Devuelta" derivado de las observaciones. */
-export const ChipEstadoPublicacion = ({ p }: { p: PublicacionDto }) => (
-  <EstadoChip estado={estadoVisual(p)} />
-);
 
 const s = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },

@@ -1,13 +1,15 @@
-import { Fragment, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, type TextInputProps } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Switch } from 'react-native-paper';
 import { Controller, useForm, useWatch, type UseFormSetError } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   camposExtra,
   editarFichaSchema,
   fichaSchema,
+  TIPOS_DESTACABLES,
   type FichaInput,
   type TipoPublicacion,
 } from '@colpa/shared';
@@ -16,11 +18,12 @@ import { momento } from '../../lib/fechas';
 import { Boton } from '../../components/Boton';
 import { Campo } from '../../components/Campo';
 import { EstadoChip, estadoVisual } from '../../components/EstadoChip';
+import { CajaError } from '../../components/Estados';
 import { Pantalla } from '../../components/Pantalla';
 import { Txt } from '../../components/Txt';
 import { RADIO, colores } from '../../theme';
 import { ETIQUETA_CAMPO } from './etiquetas';
-import { moduloDeTipo, parche, progresoFicha } from './ficha';
+import { MSG_VACIO_EDICION, moduloDeTipo, parche, progresoFicha, vaciados } from './ficha';
 import { useAccion, useCrear, useEditar } from './hooks';
 import { ImagenesFicha } from './ImagenesFicha';
 import type { PublicacionDto } from './tipos';
@@ -34,10 +37,12 @@ interface Props {
   publicacion?: PublicacionDto;
   /** Selector de módulo/tipo (solo al crear), se dibuja tras el progreso. */
   selector?: ReactNode;
+  /** Se llama al crearse el borrador: desde ahí módulo/tipo ya no pueden cambiar. */
+  onCreada?: () => void;
 }
 
 const valoresIniciales = (tipo: TipoPublicacion, p?: PublicacionDto) => {
-  const v: Record<string, string> = {
+  const v: Record<string, string | boolean> = {
     modulo: moduloDeTipo(tipo),
     tipo,
     titulo: p?.titulo ?? '',
@@ -47,6 +52,7 @@ const valoresIniciales = (tipo: TipoPublicacion, p?: PublicacionDto) => {
     lugar: p?.lugar ?? '',
     poblacionObjetivo: p?.poblacionObjetivo ?? '',
     requisitos: p?.requisitos ?? '',
+    destacado: p?.destacado ?? false,
   };
   for (const k of camposExtra(tipo))
     v[k] = (p as unknown as Record<string, string | null>)?.[k] ?? '';
@@ -64,20 +70,37 @@ function aplicarErrores(e: unknown, setError: UseFormSetError<FichaInput>): stri
 }
 
 /** Ficha genérica (P-14) guiada por el catálogo y el schema compartido: sirve a cualquier tipo. */
-export function FormPublicacion({ tipo, publicacion, selector }: Props) {
+export function FormPublicacion({ tipo, publicacion, selector, onCreada }: Props) {
   const extras = camposExtra(tipo);
   const crear = useCrear();
-  const editar = useEditar(publicacion?.id ?? '');
+  // Al crear, la ficha recién creada pasa a ser la base: un reintento edita esa, no crea otra.
+  const [creada, setCreada] = useState<PublicacionDto | null>(null);
+  const base = publicacion ?? creada;
+  const editar = useEditar(base?.id ?? '');
   const enviar = useAccion('ENVIAR_REVISION');
   const [errorForm, setErrorForm] = useState<string | null>(null);
   const [guardado, setGuardado] = useState<Date | null>(null);
   const [ocupado, setOcupado] = useState(false);
 
-  const { control, handleSubmit, getValues, setError } = useForm<FichaInput>({
+  const { control, handleSubmit, getValues, setError, reset } = useForm<FichaInput>({
     resolver: zodResolver(fichaSchema) as never,
     defaultValues: valoresIniciales(tipo, publicacion) as never,
     mode: 'onTouched',
   });
+
+  // Cambio de tipo/módulo al crear: se conserva lo escrito y se descarta lo que el tipo no usa.
+  const tipoPrevio = useRef(tipo);
+  useEffect(() => {
+    if (publicacion || tipoPrevio.current === tipo) return;
+    tipoPrevio.current = tipo;
+    const previo = getValues() as unknown as Record<string, unknown>;
+    const nuevo: Record<string, unknown> = { ...valoresIniciales(tipo) };
+    for (const k of Object.keys(nuevo))
+      if (k !== 'modulo' && k !== 'tipo' && k in previo) nuevo[k] = previo[k];
+    if (!TIPOS_DESTACABLES.includes(tipo)) nuevo.destacado = false;
+    reset(nuevo as never);
+  }, [tipo, publicacion, getValues, reset]);
+
   const progreso = progresoFicha(useWatch({ control }) as Partial<FichaInput>);
   const devuelta = publicacion?.estado === 'BORRADOR' && !!publicacion.observaciones;
 
@@ -116,9 +139,14 @@ export function FormPublicacion({ tipo, publicacion, selector }: Props) {
 
   // La API exige la ficha completa al crear; al editar acepta cambios parciales.
   const persistir = async (v: FichaInput): Promise<PublicacionDto> => {
-    if (!publicacion) return crear.mutateAsync(v);
-    const cambios = parche(v as unknown as Record<string, unknown>, publicacion, extras);
-    return Object.keys(cambios).length ? editar.mutateAsync(cambios) : publicacion;
+    if (!base) {
+      const p = await crear.mutateAsync(v);
+      setCreada(p);
+      onCreada?.();
+      return p;
+    }
+    const cambios = parche(v as unknown as Record<string, unknown>, base, extras);
+    return Object.keys(cambios).length ? editar.mutateAsync(cambios) : base;
   };
 
   const guardarBorrador = async () => {
@@ -133,11 +161,11 @@ export function FormPublicacion({ tipo, publicacion, selector }: Props) {
     }
     // Borrador existente: guardado parcial; solo se valida el formato de lo que se envía.
     await ejecutar(async () => {
-      const cambios = parche(
-        getValues() as unknown as Record<string, unknown>,
-        publicacion,
-        extras,
-      );
+      const valores = getValues() as unknown as Record<string, unknown>;
+      const vacios = vaciados(valores, publicacion, extras);
+      for (const k of vacios) setError(k as never, { type: 'manual', message: MSG_VACIO_EDICION });
+      if (vacios.length) throw new ApiError(400, 'Revise los campos marcados', {}, []);
+      const cambios = parche(valores, publicacion, extras);
       if (!Object.keys(cambios).length) return setGuardado(new Date());
       const r = editarFichaSchema.safeParse(cambios);
       if (!r.success) {
@@ -153,7 +181,7 @@ export function FormPublicacion({ tipo, publicacion, selector }: Props) {
     ejecutar(async () => {
       const p = await persistir(v);
       await enviar.mutateAsync({ id: p.id });
-      router.replace('/(panel)/publicaciones');
+      router.dismissTo('/(panel)/publicaciones');
     }),
   );
 
@@ -204,7 +232,6 @@ export function FormPublicacion({ tipo, publicacion, selector }: Props) {
             <View style={s.notaTexto}>
               <Txt v="t16m">Devuelta con observaciones</Txt>
               <Txt v="t14">{publicacion!.observaciones}</Txt>
-              <Txt v="t14" tenue>{`Aprobador · ${momento(publicacion!.actualizadoEn)}`}</Txt>
             </View>
           </View>
         )}
@@ -258,6 +285,25 @@ export function FormPublicacion({ tipo, publicacion, selector }: Props) {
           <Fragment key={k}>{campo(k, ETIQUETA_CAMPO[k] ?? k, { maxLength: 100 })}</Fragment>
         ))}
 
+        {TIPOS_DESTACABLES.includes(tipo) && (
+          <Controller
+            control={control}
+            name="destacado"
+            render={({ field }) => (
+              <View style={s.destacar}>
+                <Txt v="t16" style={s.notaTexto}>
+                  Destacar en Inicio
+                </Txt>
+                <Switch
+                  value={!!field.value}
+                  onValueChange={field.onChange}
+                  accessibilityLabel="Destacar en Inicio"
+                />
+              </View>
+            )}
+          />
+        )}
+
         <ImagenesFicha publicacionId={publicacion?.id} imagenes={publicacion?.imagenes ?? []} />
 
         {guardado && !errorForm && (
@@ -266,14 +312,7 @@ export function FormPublicacion({ tipo, publicacion, selector }: Props) {
             <Txt v="t14m">Borrador guardado</Txt>
           </View>
         )}
-        {errorForm && (
-          <View style={s.errorForm} accessibilityRole="alert">
-            <MaterialCommunityIcons name="alert-circle" size={24} color={colores.error} />
-            <Txt v="t14m" style={s.notaTexto}>
-              {errorForm}
-            </Txt>
-          </View>
-        )}
+        {errorForm && <CajaError mensaje={errorForm} />}
       </ScrollView>
     </Pantalla>
   );
@@ -305,6 +344,6 @@ const s = StyleSheet.create({
   dos: { flexDirection: 'row', gap: 8 },
   mitad: { flex: 1 },
   guardado: { ...caja, borderColor: colores.success },
-  errorForm: { ...caja, borderColor: colores.error },
+  destacar: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, marginTop: 12 },
   acciones: { flexDirection: 'row', gap: 8 },
 });

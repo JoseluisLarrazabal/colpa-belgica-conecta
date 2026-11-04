@@ -22,6 +22,7 @@ export interface PublicacionDto {
   poblacionObjetivo: string | null;
   requisitos: string | null;
   tipoVacuna: string | null;
+  destacado: boolean;
   estado: Estado;
   observaciones: string | null;
   unidadId: string;

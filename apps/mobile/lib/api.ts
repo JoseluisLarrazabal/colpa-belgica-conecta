@@ -5,6 +5,7 @@ let alExpirar: (() => void) | null = null;
 export const fijarToken = (t: string | null) => {
   token = t;
 };
+export const tokenActual = () => token;
 /** El contexto de sesión registra aquí qué hacer ante un 401 (cerrar sesión). */
 export const alRechazarToken = (fn: (() => void) | null) => {
   alExpirar = fn;
@@ -27,21 +28,31 @@ interface Opciones {
   cuerpo?: unknown;
   /** false en el login: un 401 allí es "credenciales incorrectas", no sesión vencida. */
   autenticado?: boolean;
+  /** Bearer explícito (logout tras limpiar la sesión local); sin él se usa el de la sesión. */
+  token?: string;
 }
 
-const base = () => `${process.env.EXPO_PUBLIC_API_URL ?? ''}/api/v1`;
+const base = () => {
+  const url = process.env.EXPO_PUBLIC_API_URL;
+  if (!url) throw new Error('Falta EXPO_PUBLIC_API_URL: no se sabe a qué servidor conectar');
+  if (!__DEV__ && !url.startsWith('https://'))
+    throw new Error('EXPO_PUBLIC_API_URL debe usar https en producción');
+  return `${url}/api/v1`;
+};
 
 export async function api<T = void>(
   ruta: string,
-  { metodo = 'GET', cuerpo, autenticado = true }: Opciones = {},
+  { metodo = 'GET', cuerpo, autenticado = true, token: bearer }: Opciones = {},
 ): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (cuerpo !== undefined) headers['Content-Type'] = 'application/json';
-  if (autenticado && token) headers['Authorization'] = `Bearer ${token}`;
+  const t = bearer ?? (autenticado ? token : null);
+  if (t) headers['Authorization'] = `Bearer ${t}`;
 
+  const url = `${base()}${ruta}`; // fuera del try: una URL mal configurada no es "sin conexión"
   let res: Response;
   try {
-    res = await fetch(`${base()}${ruta}`, {
+    res = await fetch(url, {
       method: metodo,
       headers,
       body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),

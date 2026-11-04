@@ -3,11 +3,13 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
+import { useSesion } from '../../lib/sesion';
 import { Txt } from '../../components/Txt';
 import { colores } from '../../theme';
 
 export default function Inicio() {
   const { colors } = useTheme();
+  const { funcionario } = useSesion();
   return (
     <View
       style={{ flex: 1, justifyContent: 'center', padding: 16, backgroundColor: colors.background }}
@@ -16,7 +18,7 @@ export default function Inicio() {
       <Text variant="bodyLarge">Módulos: {MODULOS.join(', ')}</Text>
       <Pressable
         accessibilityRole="link"
-        onPress={() => router.push('/(panel)/login')}
+        onPress={() => router.push(funcionario ? '/(panel)/inicio' : '/(panel)/login')}
         style={s.acceso}
       >
         <MaterialCommunityIcons name="lock-outline" size={20} color={colores.primary} />

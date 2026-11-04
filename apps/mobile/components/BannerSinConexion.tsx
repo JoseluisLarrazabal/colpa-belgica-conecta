@@ -1,18 +1,15 @@
 import { StyleSheet, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { momento } from '../lib/fechas';
 import { colores } from '../theme';
 import { Txt } from './Txt';
 
 /** Banda neutra (no alarma): estar sin conexión es lo normal en zonas rurales. */
-export function BannerSinConexion({ guardadoEn }: { guardadoEn?: Date | number | null }) {
+export function BannerSinConexion() {
   return (
     <View style={s.banda} accessibilityRole="alert" accessibilityLiveRegion="polite">
       <MaterialCommunityIcons name="wifi-off" size={24} color="#FFFFFF" />
       <Txt v="t14m" color="#FFFFFF" style={s.texto}>
-        {guardadoEn
-          ? `Sin conexión · mostrando lo guardado ${momento(new Date(guardadoEn))}`
-          : 'Sin conexión · no se puede guardar ni enviar'}
+        Sin conexión · no se puede guardar ni enviar
       </Txt>
     </View>
   );

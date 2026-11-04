@@ -7,7 +7,6 @@ const casos: [EstadoVisual, string][] = [
   ['DEVUELTA', 'Devuelta'],
   ['PUBLICADO', 'Publicada'],
   ['ARCHIVADO', 'Archivada'],
-  ['SIN_CONEXION', 'Sin conexión'],
 ];
 
 it.each(casos)('EstadoChip %s muestra el texto %s', async (estado, texto) => {

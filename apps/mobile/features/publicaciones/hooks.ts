@@ -27,11 +27,11 @@ export const usePublicacion = (id: string | undefined) =>
 /** Toda mutación invalida listas y detalle: el servidor es la única fuente de verdad. */
 function useInvalidar() {
   const qc = useQueryClient();
-  return () =>
-    Promise.all([
-      qc.invalidateQueries({ queryKey: ['publicaciones'] }),
-      qc.invalidateQueries({ queryKey: ['publicacion'] }),
-    ]);
+  // Sin devolver la promesa: la mutación no espera el refetch (mutateAsync resuelve al instante).
+  return () => {
+    void qc.invalidateQueries({ queryKey: ['publicaciones'] });
+    void qc.invalidateQueries({ queryKey: ['publicacion'] });
+  };
 }
 
 export function useCrear() {

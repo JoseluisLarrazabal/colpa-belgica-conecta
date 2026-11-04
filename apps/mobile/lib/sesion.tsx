@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { useQueryClient } from '@tanstack/react-query';
 import type { LoginInput, Rol } from '@colpa/shared';
-import { alRechazarToken, api, fijarToken } from './api';
+import { alRechazarToken, api, fijarToken, tokenActual } from './api';
 
 export interface Funcionario {
   id: string;
@@ -57,11 +57,12 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   const [cargando, setCargando] = useState(true);
   const [funcionario, setFuncionario] = useState<Funcionario | null>(null);
 
-  const limpiar = useCallback(() => {
+  /** Cierre local: memoria primero, luego el almacén seguro (`guardar` ya captura sus errores). */
+  const limpiar = useCallback(async () => {
     fijarToken(null);
     setFuncionario(null);
     qc.clear();
-    void guardar(null);
+    await guardar(null);
   }, [qc]);
 
   useEffect(() => {
@@ -91,12 +92,13 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
         await guardar(r);
       },
       async salir() {
-        try {
-          await api('/auth/logout', { metodo: 'POST' });
-        } catch {
-          // sin red o token ya vencido: igual se cierra localmente
-        }
-        limpiar();
+        const t = tokenActual();
+        await limpiar();
+        // Sin red o con el token ya vencido igual quedó cerrada la sesión local.
+        if (t)
+          void api('/auth/logout', { metodo: 'POST', autenticado: false, token: t }).catch(
+            () => {},
+          );
       },
     }),
     [cargando, funcionario, limpiar],

@@ -10,6 +10,8 @@ import { FormPublicacion } from '../../../features/publicaciones/FormPublicacion
 export default function NuevaPublicacion() {
   const [modulo, setModulo] = useState<Modulo>('SALUD');
   const [tipo, setTipo] = useState<TipoPublicacion>('CAMPANA_VACUNACION');
+  // Con el borrador ya creado, un reintento edita ese: cambiar el tipo aquí no se aplicaría.
+  const [bloqueado, setBloqueado] = useState(false);
 
   const elegirModulo = (m: Modulo) => {
     setModulo(m);
@@ -26,6 +28,7 @@ export default function NuevaPublicacion() {
             key={m}
             texto={ETIQUETA_MODULO[m]}
             activo={m === modulo}
+            deshabilitado={bloqueado}
             onPress={() => elegirModulo(m)}
           />
         ))}
@@ -39,14 +42,15 @@ export default function NuevaPublicacion() {
             key={t}
             texto={ETIQUETA_TIPO[t]}
             activo={t === tipo}
+            deshabilitado={bloqueado}
             onPress={() => setTipo(t)}
           />
         ))}
       </View>
     </View>
   );
-  // key = tipo: cada tipo tiene su propio conjunto de campos y su propio estado de formulario.
-  return <FormPublicacion key={tipo} tipo={tipo} selector={selector} />;
+  // Sin key: al cambiar de tipo el formulario conserva lo escrito y solo descarta lo que el tipo nuevo no usa.
+  return <FormPublicacion tipo={tipo} selector={selector} onCreada={() => setBloqueado(true)} />;
 }
 
 const s = StyleSheet.create({

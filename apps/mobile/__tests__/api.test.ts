@@ -9,6 +9,7 @@ const respuesta = (status: number, cuerpo?: unknown) =>
 
 const fetchMock = jest.fn();
 beforeEach(() => {
+  process.env.EXPO_PUBLIC_API_URL = 'http://localhost:3000';
   fetchMock.mockReset();
   globalThis.fetch = fetchMock as unknown as typeof fetch;
   fijarToken(null);
@@ -69,4 +70,23 @@ it('un cuerpo de error que no es JSON cae al mensaje genérico', async () => {
     } as Response),
   );
   await expect(api('/x')).rejects.toMatchObject({ status: 502, message: 'Error inesperado' });
+});
+
+it('sin EXPO_PUBLIC_API_URL falla con un error claro (no como "sin conexión")', async () => {
+  process.env.EXPO_PUBLIC_API_URL = '';
+  await expect(api('/x')).rejects.toThrow('Falta EXPO_PUBLIC_API_URL');
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+it('fuera de desarrollo exige https', async () => {
+  const dev = (globalThis as { __DEV__?: boolean }).__DEV__;
+  (globalThis as { __DEV__?: boolean }).__DEV__ = false;
+  try {
+    await expect(api('/x')).rejects.toThrow('https');
+    process.env.EXPO_PUBLIC_API_URL = 'https://api.ejemplo.bo';
+    fetchMock.mockReturnValue(respuesta(200, {}));
+    await expect(api('/x')).resolves.toEqual({});
+  } finally {
+    (globalThis as { __DEV__?: boolean }).__DEV__ = dev;
+  }
 });

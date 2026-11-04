@@ -5,7 +5,7 @@ import { RADIO, colores } from '../theme';
 import { Txt } from './Txt';
 
 /** "Devuelta" no es un estado de la API: es un Borrador con observaciones del Aprobador. */
-export type EstadoVisual = Estado | 'DEVUELTA' | 'SIN_CONEXION';
+export type EstadoVisual = Estado | 'DEVUELTA';
 
 export const estadoVisual = (p: { estado: Estado; observaciones?: string | null }): EstadoVisual =>
   p.estado === 'BORRADOR' && p.observaciones ? 'DEVUELTA' : p.estado;
@@ -56,14 +56,6 @@ const DEF: Record<EstadoVisual, Def> = {
     icono: 'archive-outline',
     colorIcono: colores.onSurfaceVariant,
     borde: colores.outline,
-  },
-  SIN_CONEXION: {
-    texto: 'Sin conexión',
-    icono: 'wifi-off',
-    colorIcono: '#FFFFFF',
-    borde: colores.onSurfaceVariant,
-    fondo: colores.onSurfaceVariant,
-    colorTexto: '#FFFFFF',
   },
 };
 

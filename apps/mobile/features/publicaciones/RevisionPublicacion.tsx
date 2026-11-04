@@ -7,19 +7,25 @@ import { ApiError } from '../../lib/api';
 import { momento } from '../../lib/fechas';
 import { Boton } from '../../components/Boton';
 import { Campo } from '../../components/Campo';
+import { ChipElegir } from '../../components/ChipElegir';
 import { EstadoChip, estadoVisual } from '../../components/EstadoChip';
+import { CajaError } from '../../components/Estados';
 import { Pantalla } from '../../components/Pantalla';
 import { Txt } from '../../components/Txt';
 import { RADIO, colores } from '../../theme';
+import { ETIQUETA_MODULO } from './etiquetas';
 import { useAccion } from './hooks';
 import type { PublicacionDto } from './tipos';
 import { VistaPublicacion } from './VistaPublicacion';
+
+const MAX_OBS = 2000; // devolverSchema
 
 /** P-18: vista previa de solo lectura + decisión del Aprobador (Publicar / Devolver / Archivar). */
 export function RevisionPublicacion({ p }: { p: PublicacionDto }) {
   const publicar = useAccion('PUBLICAR');
   const devolver = useAccion('DEVOLVER');
   const archivar = useAccion('ARCHIVAR');
+  const ocupado = publicar.isPending || devolver.isPending || archivar.isPending;
   const [pidiendoObs, setPidiendoObs] = useState(false);
   const [obs, setObs] = useState('');
   const [errorObs, setErrorObs] = useState<string | undefined>();
@@ -33,7 +39,7 @@ export function RevisionPublicacion({ p }: { p: PublicacionDto }) {
     setErrorGeneral(null);
     try {
       await m.mutateAsync({ id: p.id, ...(a === 'DEVOLVER' && { observaciones: extra }) });
-      router.replace('/(panel)/revision');
+      router.dismissTo('/(panel)/revision');
     } catch (e) {
       setErrorGeneral(e instanceof ApiError ? e.message : 'No se pudo completar la operación');
     }
@@ -53,11 +59,12 @@ export function RevisionPublicacion({ p }: { p: PublicacionDto }) {
           icono="check-circle-outline"
           onPress={() => void correr(publicar, 'PUBLICAR')}
           cargando={publicar.isPending}
+          deshabilitado={ocupado}
         />
         <View style={s.nota}>
-          <MaterialCommunityIcons name="bell-outline" size={20} color={colores.onSurfaceVariant} />
+          <MaterialCommunityIcons name="eye-outline" size={20} color={colores.onSurfaceVariant} />
           <Txt v="t14" tenue style={s.notaTexto}>
-            Se enviará una notificación a todos los dispositivos
+            {`Al publicar, aparecerá para los habitantes en Inicio y en ${ETIQUETA_MODULO[p.modulo]}`}
           </Txt>
         </View>
         <Boton
@@ -65,6 +72,7 @@ export function RevisionPublicacion({ p }: { p: PublicacionDto }) {
           variante="borde"
           onPress={pidiendoObs ? confirmarDevolver : () => setPidiendoObs(true)}
           cargando={devolver.isPending}
+          deshabilitado={ocupado}
         />
       </>
     ) : p.estado === 'PUBLICADO' ? (
@@ -74,6 +82,7 @@ export function RevisionPublicacion({ p }: { p: PublicacionDto }) {
         icono="archive-outline"
         onPress={() => void correr(archivar, 'ARCHIVAR')}
         cargando={archivar.isPending}
+        deshabilitado={ocupado}
       />
     ) : null;
   return (
@@ -89,6 +98,11 @@ export function RevisionPublicacion({ p }: { p: PublicacionDto }) {
             {momento(p.actualizadoEn)}
           </Txt>
         </View>
+        {p.destacado && (
+          <View style={s.destacado}>
+            <ChipElegir texto="Destacado en Inicio" activo />
+          </View>
+        )}
         <View style={s.prev} accessibilityLabel="Vista previa, solo lectura">
           <View style={s.prevTop}>
             <MaterialCommunityIcons
@@ -107,20 +121,15 @@ export function RevisionPublicacion({ p }: { p: PublicacionDto }) {
             rotulo="Observaciones para el Publicador (obligatorio)"
             placeholder="Escriba qué debe corregir"
             multiline
+            maxLength={MAX_OBS}
+            ayuda={`${obs.length}/${MAX_OBS}`}
             value={obs}
             onChangeText={setObs}
             error={errorObs}
             autoFocus
           />
         )}
-        {errorGeneral && (
-          <View style={s.error} accessibilityRole="alert">
-            <MaterialCommunityIcons name="alert-circle" size={24} color={colores.error} />
-            <Txt v="t14m" style={s.notaTexto}>
-              {errorGeneral}
-            </Txt>
-          </View>
-        )}
+        {errorGeneral && <CajaError mensaje={errorGeneral} />}
       </ScrollView>
     </Pantalla>
   );
@@ -147,17 +156,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colores.primaryContainer,
   },
+  destacado: { marginTop: 12, alignSelf: 'flex-start' },
   nota: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', marginTop: 6, marginBottom: 10 },
   notaTexto: { flex: 1 },
-  error: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-    marginTop: 12,
-    padding: 12,
-    borderRadius: RADIO,
-    borderWidth: 1,
-    borderColor: colores.error,
-    backgroundColor: colores.surface,
-  },
 });

@@ -21,7 +21,12 @@ export const colores = {
 export const RADIO = 8;
 export const OBJETIVO_TACTIL = 48;
 
-const fontFamily = Platform.select({ web: 'Roboto, system-ui, sans-serif', default: 'System' });
+// En web 'system-ui' toma la fuente del SO (monoespaciada en algunos Linux); se fija una pila
+// sans-serif. En Android 'System' ya es Roboto.
+const fontFamily = Platform.select({
+  web: 'Roboto, "Helvetica Neue", Arial, sans-serif',
+  default: 'System',
+});
 const estilo = (fontSize: number, lineHeight: number, fontWeight: '400' | '500' = '400') =>
   ({ fontFamily, fontSize, lineHeight, fontWeight }) satisfies TextStyle;
 
