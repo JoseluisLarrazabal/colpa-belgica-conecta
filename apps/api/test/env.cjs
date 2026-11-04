@@ -13,3 +13,9 @@ if (!base.endsWith('_test')) {
 
 // Secreto solo para pruebas (≥ 32 caracteres); en local/CI no hace falta definirlo.
 process.env.JWT_SECRET ??= 'secreto-solo-para-pruebas-0123456789abcdef';
+
+// Valores falsos: la firma se calcula localmente y los tests nunca llaman a Cloudinary.
+process.env.CLOUDINARY_CLOUD_NAME = 'demo-test';
+process.env.CLOUDINARY_API_KEY = '123456789012345';
+process.env.CLOUDINARY_API_SECRET = 'secreto-cloudinary-de-prueba';
+process.env.CLOUDINARY_FOLDER = 'colpa/test';

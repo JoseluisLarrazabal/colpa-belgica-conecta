@@ -2,21 +2,21 @@
 
 Generado el 2026-11-04 por `pnpm progreso`.
 
-**Avance: 3/35 RF con al menos un test verde y ninguno fallido (8.6%).** Solo cuentan los tests de `apps/*`.
+**Avance: 11/35 RF con al menos un test verde y ninguno fallido (31.4%).** Solo cuentan los tests de `apps/*`.
 
 | RF | Módulo | Título | Estado | Tests verdes |
 |----|--------|--------|--------|--------------|
 | RF-01 | M01 | Iniciar sesión | Con test verde | 17 |
 | RF-02 | M01 | Gestionar cuentas de funcionarios | Con test verde | 12 |
 | RF-03 | M01 | Asignar rol a una cuenta | Con test verde | 7 |
-| RF-04 | M01 | Elaborar publicación con ficha estructurada | Pendiente | 0 |
-| RF-05 | M01 | Adjuntar imágenes a la publicación | Pendiente | 0 |
-| RF-06 | M01 | Enviar publicación a revisión | Pendiente | 0 |
-| RF-07 | M01 | Publicar publicación revisada | Pendiente | 0 |
-| RF-08 | M01 | Devolver publicación con observaciones | Pendiente | 0 |
-| RF-09 | M01 | Archivar publicación | Pendiente | 0 |
-| RF-10 | M01 | Consultar el registro de auditoría | Pendiente | 0 |
-| RF-11 | M02 | Registrar campaña de vacunación | Pendiente | 0 |
+| RF-04 | M01 | Elaborar publicación con ficha estructurada | Con test verde | 9 |
+| RF-05 | M01 | Adjuntar imágenes a la publicación | Con test verde | 6 |
+| RF-06 | M01 | Enviar publicación a revisión | Con test verde | 3 |
+| RF-07 | M01 | Publicar publicación revisada | Con test verde | 3 |
+| RF-08 | M01 | Devolver publicación con observaciones | Con test verde | 5 |
+| RF-09 | M01 | Archivar publicación | Con test verde | 2 |
+| RF-10 | M01 | Consultar el registro de auditoría | Con test verde | 4 |
+| RF-11 | M02 | Registrar campaña de vacunación | Con test verde | 6 |
 | RF-12 | M02 | Registrar jornada de atención o brigada móvil | Pendiente | 0 |
 | RF-13 | M02 | Registrar entrega de medicamentos e insumos | Pendiente | 0 |
 | RF-14 | M02 | Destacar comunicado sanitario o de emergencia | Pendiente | 0 |

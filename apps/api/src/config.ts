@@ -21,3 +21,15 @@ if (hopsCrudo && !/^\d+$/.test(hopsCrudo)) {
   throw new Error('TRUST_PROXY_HOPS debe ser un entero no negativo');
 }
 export const TRUST_PROXY_HOPS = hopsCrudo ? Number(hopsCrudo) : 0;
+
+/** RNF-25: credenciales de Cloudinary solo del entorno; se leen al usarlas para no impedir el arranque sin ellas. */
+export function cloudinary() {
+  const cloudName = process.env['CLOUDINARY_CLOUD_NAME'];
+  const apiKey = process.env['CLOUDINARY_API_KEY'];
+  const apiSecret = process.env['CLOUDINARY_API_SECRET'];
+  if (!cloudName || !apiKey || !apiSecret) return null;
+  // Una carpeta por entorno (2.4.4).
+  const carpeta =
+    process.env['CLOUDINARY_FOLDER'] ?? `colpa/${process.env['NODE_ENV'] ?? 'development'}`;
+  return { cloudName, apiKey, apiSecret, carpeta };
+}

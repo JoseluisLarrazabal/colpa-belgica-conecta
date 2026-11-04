@@ -1,0 +1,108 @@
+import { z } from 'zod';
+import { CATALOGO, MODULOS, tipoPerteneceAModulo, type TipoPublicacion } from '../catalogo';
+import { ACCIONES, estadoSchema } from '../dominio/estados';
+
+// Longitudes = columnas de publicacion (Tabla 2.55).
+const texto = (max: number) => z.string().trim().min(1).max(max);
+const fecha = z.iso.date();
+const hora = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Hora HH:MM');
+
+/** Campos obligatorios de toda ficha (RF-04, CU-03). */
+const base = {
+  modulo: z.enum(MODULOS),
+  titulo: texto(150),
+  detalle: z.string().trim().min(1),
+  fechaInicio: fecha,
+  fechaFin: fecha.nullish(),
+  hora,
+  lugar: texto(150),
+  poblacionObjetivo: texto(150),
+  requisitos: z.string().trim().min(1),
+};
+
+/** Campos propios de un tipo (se suman a `base`). Agregar un tipo = una entrada aquí. */
+const EXTRAS: Partial<Record<TipoPublicacion, z.ZodRawShape>> = {
+  CAMPANA_VACUNACION: { tipoVacuna: texto(100) }, // RF-11
+};
+
+const variante = (tipo: TipoPublicacion) =>
+  z.object({ ...base, ...EXTRAS[tipo], tipo: z.literal(tipo) });
+
+const TIPOS = Object.values(CATALOGO).flat();
+
+/** Ficha completa por tipo (unión discriminada por `tipo`); el tipo debe corresponder al módulo. */
+export const fichaSchema = z
+  .discriminatedUnion('tipo', TIPOS.map(variante) as [ReturnType<typeof variante>])
+  .superRefine((f, ctx) => {
+    if (!tipoPerteneceAModulo(f.modulo, f.tipo)) {
+      ctx.addIssue({ code: 'custom', path: ['tipo'], message: 'El tipo no corresponde al módulo' });
+    }
+    if (f.fechaFin && f.fechaFin < f.fechaInicio) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['fechaFin'],
+        message: 'No puede ser anterior al inicio',
+      });
+    }
+  });
+export type FichaInput = z.infer<typeof fichaSchema>;
+
+/** Edición parcial: no cambia módulo ni tipo; el resultado combinado se revalida con `fichaSchema`. */
+export const editarFichaSchema = z
+  .object({
+    titulo: base.titulo,
+    detalle: base.detalle,
+    fechaInicio: base.fechaInicio,
+    fechaFin: base.fechaFin,
+    hora: base.hora,
+    lugar: base.lugar,
+    poblacionObjetivo: base.poblacionObjetivo,
+    requisitos: base.requisitos,
+    tipoVacuna: texto(100),
+  })
+  .partial()
+  .strict()
+  .refine((v) => Object.keys(v).length > 0, { message: 'Indica al menos un campo a modificar' });
+export type EditarFichaInput = z.infer<typeof editarFichaSchema>;
+
+const paginacion = {
+  limite: z.coerce.number().int().min(1).max(100).default(50),
+  desplazamiento: z.coerce.number().int().min(0).default(0),
+};
+
+export const listarPublicacionesSchema = z.object({
+  estado: estadoSchema.optional(),
+  modulo: z.enum(MODULOS).optional(),
+  ...paginacion,
+});
+export type ListarPublicacionesInput = z.infer<typeof listarPublicacionesSchema>;
+
+export const devolverSchema = z.object({ observaciones: z.string().trim().max(2000).optional() });
+export type DevolverInput = z.infer<typeof devolverSchema>;
+
+/** RF-05: máximo de imágenes por publicación (el documento no lo fija) y formatos admitidos. */
+export const MAX_IMAGENES = 4;
+export const FORMATOS_IMAGEN = ['jpg', 'jpeg', 'png', 'webp'] as const;
+
+export const registrarImagenSchema = z.object({
+  publicId: z.string().min(1).max(255),
+  url: z.url({ protocol: /^https$/ }).max(500),
+});
+export type RegistrarImagenInput = z.infer<typeof registrarImagenSchema>;
+
+export const imagenParamSchema = z.object({ id: z.uuid(), imagenId: z.uuid() });
+
+/** RF-10: filtros de la consulta de auditoría (Tabla 2.64). */
+export const consultarAuditoriaSchema = z.object({
+  publicacionId: z.uuid().optional(),
+  funcionarioId: z.uuid().optional(),
+  accion: z.string().trim().min(1).max(40).optional(),
+  estado: estadoSchema.optional(),
+  desde: z.iso.datetime({ offset: true }).optional(),
+  hasta: z.iso.datetime({ offset: true }).optional(),
+  ...paginacion,
+});
+export type ConsultarAuditoriaInput = z.infer<typeof consultarAuditoriaSchema>;
+
+/** Acciones de auditoría: las de transición más las de alta, edición y descarte del borrador. */
+export const ACCIONES_AUDITORIA = [...ACCIONES, 'CREAR', 'EDITAR', 'DESCARTAR'] as const;
