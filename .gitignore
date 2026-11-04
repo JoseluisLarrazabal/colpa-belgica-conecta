@@ -14,3 +14,9 @@ apps/api/src/generated/
 *.jks
 *.p12
 *.key
+.neon
+.env.neon
+.claude/worktrees/
+skills-lock.json
+.claude/skills/
+.vercel

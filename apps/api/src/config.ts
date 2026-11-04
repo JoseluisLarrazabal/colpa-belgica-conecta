@@ -10,11 +10,16 @@ export const TOKEN_TTL_SEG = 60 * 60; // 1 h
 export const MAX_INTENTOS = 5;
 export const BLOQUEO_MIN = 15;
 
-// Railway termina TLS en un proxy: sin confiar en él, el límite de login vería una sola IP.
+// Detrás de un proxy sin confiar en él, el límite de login vería una sola IP.
+// Vercel: su edge SOBRESCRIBE x-forwarded-for con la IP real del cliente (un solo valor; no pasa el del cliente),
+// así que hay exactamente 1 salto de confianza -> TRUST_PROXY_HOPS=1. Con 0, req.ip sería la IP interna de Vercel.
+// Railway: también 1.
 const hopsCrudo = process.env['TRUST_PROXY_HOPS'];
 if (hopsCrudo === undefined || hopsCrudo === '') {
   if (process.env['NODE_ENV'] === 'production') {
-    throw new Error('TRUST_PROXY_HOPS es obligatoria en producción (en Railway debe ser 1)');
+    throw new Error(
+      'TRUST_PROXY_HOPS es obligatoria en producción (en Vercel y Railway debe ser 1)',
+    );
   }
 }
 if (hopsCrudo && !/^\d+$/.test(hopsCrudo)) {

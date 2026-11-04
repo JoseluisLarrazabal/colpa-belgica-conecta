@@ -32,7 +32,9 @@ export function crearApiV1({ loginMax = 10, publicoMax = 1000 }: OpcionesApi = {
   const r = Router();
   r.get('/health', health);
 
-  // shortcut: memoria por proceso; usar store compartido si hay >1 réplica
+  // shortcut: memoria por proceso; en Vercel serverless el conteo es por instancia y se reinicia en cold start,
+  // así que el límite por IP es más débil que el nominal. El bloqueo por cuenta en BD (5 intentos/15 min) sí se
+  // mantiene. Aceptado para la demo; pasar a store compartido (p. ej. Upstash Redis) antes de uso público real.
   const limiteLogin = rateLimit({
     windowMs: 15 * 60_000,
     limit: loginMax,
@@ -43,7 +45,9 @@ export function crearApiV1({ loginMax = 10, publicoMax = 1000 }: OpcionesApi = {
   r.post('/auth/login', limiteLogin, validar(loginSchema), login);
   r.post('/auth/logout', autenticar, logout);
 
-  // shortcut: memoria por proceso (usar store compartido si hay >1 réplica); límite por IP, y las operadoras móviles
+  // shortcut: memoria por proceso; en Vercel serverless el conteo es por instancia y se reinicia en cold start
+  // (más débil que el nominal); aceptado para la demo, pasar a store compartido (p. ej. Upstash Redis) antes de uso
+  // público real. Límite por IP, y las operadoras móviles
   // comparten IP pública (CGNAT), por eso es holgado: subirlo o limitar por otra clave si hay falsos 429.
   const limitePublico = rateLimit({
     windowMs: 15 * 60_000,
