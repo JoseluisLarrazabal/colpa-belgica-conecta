@@ -4,8 +4,8 @@
 
 - Plan aprobado: [plan-puesta-en-marcha.md](plan-puesta-en-marcha.md). Meta: demo del 30% ≈ 1-dic-2026 (núcleo 13 RF: RF-01..10, 11, 15, 16).
 - Fuente de requisitos: `../Documentos para mi proyecto de titulacion/Documento PG - Trabajo/fuente/03-cap2a..d.md`. SRS IEEE 830 generado: `Documento PG - Trabajo/SRS_ColpaBelgicaConecta_v1.pdf` (`build_srs.py`).
-- **Mergeado:** #1 Fase 0 · #2 RF-01..03 (login, cuentas, roles) · #3 diseño C · #4 RF-04..11 (motor de publicaciones, imágenes, máquina de estados, auditoría) · #6 RF-14/15/16 (destacar comunicado, lectura pública del habitante, destacados) · #8 app móvil: panel del funcionario.
-- **Progreso real: 14/35 RF (40 %)** (`pnpm progreso`). Todo lo contado es API. App móvil: panel del funcionario mergeado (login, Mis publicaciones, ficha con imágenes y destacado, Revisión); verificado en web y tests, **no en dispositivo**. Pantallas del habitante sin empezar.
+- **Mergeado:** #1 Fase 0 · #2 RF-01..03 (login, cuentas, roles) · #3 diseño C · #4 RF-04..11 (motor de publicaciones, imágenes, máquina de estados, auditoría) · #6 RF-14/15/16 (destacar comunicado, lectura pública del habitante, destacados) · #8 app móvil: panel del funcionario · #10 Neon + API en Vercel.
+- **Progreso real: 14/35 RF (40 %)** (`pnpm progreso`). Todo lo contado es API. App móvil: panel del funcionario mergeado (login, Mis publicaciones, ficha con imágenes y destacado, Revisión); verificado en web y tests, **no en dispositivo**. Pantallas del habitante hechas en PR #11 (**borrador, sin revisar ni mergear**). API pública en producción: https://colpa-belgica-conecta-api.vercel.app.
 
 ## Diseño (aprobado por el CTO 2026-11-04)
 
@@ -42,12 +42,19 @@
 - ESLint local recorre `.claude/worktrees/` (worktrees de agentes): ignorar `.claude` en la config.
 - Decisiones donde la tesis calla (reflejar en el Documento PG): máx. 4 imágenes jpg/jpeg/png/webp; Publicador limitado a su unidad; Aprobador ve la cola En revisión de todas las unidades y nunca borradores; descartar prohibido si ya fue enviado a revisión; regla de vigencia de RF-15; destacado solo para comunicados sanitarios.
 
+## Retomar aquí (siguiente sesión)
+
+1. **PR #11 `feat/mobile-habitante`** (borrador, rebasado sobre main): Inicio (destacados + próximas actividades con fecha relativa La Paz), lista de Salud, detalle público (`app/publicacion/[id].tsx`), DTO público en `packages/shared/src/dominio/publico.ts`, `VistaPublicacion` generalizada (`DatosVista`). Tests: mobile 46 (12 nuevos), shared 50, api 106; typecheck y lint OK; capturas `docs/evidencias/habitante-*.png`. Falta: `/code-review` + `/ponytail-review`, CI, merge. Desvíos: detalle fuera de las pestañas (con `href:null` dentro de Tabs, expo-router web redirigía a `/`), sello "Actualizado hoy HH:MM" (no "Última actualización"), RN `Image` (sin expo-image), Salud sin paginación (1 página de 50), captura "vacío" con respuesta interceptada.
+2. **Prueba en teléfono** (riesgo principal: nada corrió aún en un dispositivo): Expo Go en el Android del CTO, `EXPO_PUBLIC_API_URL=https://colpa-belgica-conecta-api.vercel.app`, recorrer el núcleo: publicador crea y envía, aprobador publica, habitante lo ve en Inicio y Salud. Cuentas `publicador.demo` / `aprobador.demo` / `admin.demo` (contraseña: `SEED_PASSWORD` en `.env.neon`). Verificar subida de imagen desde el teléfono, escala 200 % y TalkBack. Confirmar que Expo Go soporta SDK 58.
+3. Con el núcleo verificado en teléfono, `pnpm progreso` debería reflejar el 30 % comprometido; luego extensión: push (RF-24/25/27, requiere cuenta Expo + EAS) y offline (RF-29..31).
+4. La API no envía CORS: no afecta a la app nativa; solo a Expo web (las capturas usaron un proxy local).
+
 ## Pendiente
 
 - CTO: cuenta Expo + `eas login` cuando lleguemos al push (development build Android). Instalar Expo Go en el teléfono para probar el núcleo.
 - Panel móvil, desvíos conocidos: fechas/horas como texto; un PATCH no puede vaciar campos opcionales (la API no acepta `null`; el formulario lo bloquea con aviso); `panel-revision.png` retirada de evidencias (mostraba un aviso de push inexistente), regenerar. Sin verificar: dispositivo Android, subida real a Cloudinary, escala 200 %, TalkBack, `expo-doctor`.
 - No anunciar push en la UI hasta que RF-24 exista.
-- Siguiente: pantallas del habitante (Inicio con destacados + próximas actividades, Salud, detalle con "Ver ficha del lugar", sello de frescura, persistencia offline con TanStack Query persist + expo-sqlite).
+- Pendiente del habitante: "Ver ficha del lugar" (RF-35, directorio), persistencia offline (TanStack Query persist + expo-sqlite, RF-29/30) y aviso "lo puede ver sin conexión" solo cuando exista.
 - P-18 (detalle en revisión) sin autor ni unidad: el DTO del panel solo trae ids. Sumar nombres al DTO en un PR de API aparte.
-- DRY: tipos de respuesta (`PublicacionDto`) declarados en `apps/mobile`; moverlos a `packages/shared`.
+- DRY: el DTO público ya vive en `packages/shared` (PR #11); el `PublicacionDto` del panel sigue en `apps/mobile`, moverlo también.
 - Puerto 5432 ocupado en esta máquina: `DB_PORT=5440` en `.env`.
