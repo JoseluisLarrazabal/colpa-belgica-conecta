@@ -19,7 +19,7 @@ const base = {
   titulo: texto(150),
   detalle: z.string().trim().min(1),
   fechaInicio: fecha,
-  fechaFin: fecha.nullish(),
+  fechaFin: z.preprocess((v) => (v === '' ? null : v), fecha.nullish()), // '' = campo vacío del formulario móvil
   hora,
   lugar: texto(150),
   poblacionObjetivo: texto(150),

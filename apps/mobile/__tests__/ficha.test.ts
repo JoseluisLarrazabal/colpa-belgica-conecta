@@ -61,6 +61,13 @@ describe('parche de edición', () => {
     expect(parche(v, actual, ['tipoVacuna'])).toEqual({ lugar: 'Otra posta' });
   });
 
+  it('envía fechaFin al agregarla o cambiarla', () => {
+    expect(parche({ ...completa, fechaFin: '2026-11-17' }, actual, [])).toEqual({
+      fechaFin: '2026-11-17',
+    });
+    expect(parche({ ...completa, fechaFin: '' }, actual, [])).toEqual({});
+  });
+
   it('incluye los campos extra del tipo', () => {
     expect(parche({ ...completa, tipoVacuna: 'Polio' }, actual, ['tipoVacuna'])).toEqual({
       tipoVacuna: 'Polio',

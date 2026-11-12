@@ -13,10 +13,12 @@ export const moduloDeTipo = (tipo: TipoPublicacion): Modulo =>
     (CATALOGO[m] as readonly string[]).includes(tipo),
   )!;
 
+// shortcut: fechaFin (opcional) no se puede volver a vaciar por PATCH (como el resto, no admite null); se corrige poniendo una fecha, no hay "quitar fin".
 const EDITABLES = [
   'titulo',
   'detalle',
   'fechaInicio',
+  'fechaFin',
   'hora',
   'lugar',
   'poblacionObjetivo',
