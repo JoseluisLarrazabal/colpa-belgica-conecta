@@ -167,9 +167,7 @@ describe('RF-15 Consultar publicaciones de salud', () => {
         ].sort(),
       );
       expect(item.unidad).toBe('Dirección de Salud');
-      expect(item.imagenes).toEqual(
-        urls.map((u) => u.replace('/image/upload/', '/image/upload/f_auto,q_auto,w_1080/')),
-      );
+      expect(item.imagenes).toEqual(urls); // registrar ya devuelve la URL de entrega
     }
     expect(Object.keys(detalle.body).sort()).toEqual(['generadoEn', 'publicacion']);
   });
@@ -262,7 +260,7 @@ describe('RF-15 Consultar publicaciones de salud', () => {
     for (const url of [L, `${L}/${p.id}`]) {
       const r1 = await request(a).get(url);
       expect(r1.headers['cache-control']).toBe(
-        'public, max-age=0, s-maxage=30, stale-while-revalidate=60',
+        'public, max-age=0, s-maxage=30, stale-while-revalidate=30',
       );
       const etag = r1.headers['etag'] as string;
       expect(etag).toBeTruthy();
@@ -333,7 +331,7 @@ describe('RF-16 Visualizar comunicados destacados en la pantalla principal', () 
     await destacada();
     const r1 = await request(a).get(`${L}/destacadas`);
     expect(r1.headers['cache-control']).toBe(
-      'public, max-age=0, s-maxage=30, stale-while-revalidate=60',
+      'public, max-age=0, s-maxage=30, stale-while-revalidate=30',
     );
     const r2 = await request(a)
       .get(`${L}/destacadas`)

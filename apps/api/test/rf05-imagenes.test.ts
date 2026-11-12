@@ -95,7 +95,9 @@ describe('RF-05 Adjuntar imágenes a la publicación', () => {
     const publicId = await nuevoPublicId();
     const res = await registrar(pub, { publicId, formato: 'png', url: 'https://evil.test/x.png' });
     expect(res.status).toBe(201);
-    expect(res.body.url).toBe(url(publicId, 'png'));
+    expect(res.body.url).toBe(
+      url(publicId, 'png').replace('/image/upload/', '/image/upload/f_auto,q_auto,w_1080/'),
+    ); // respuesta con URL de entrega; en la BD queda la cruda
     expect((await prisma.imagen.findUniqueOrThrow({ where: { publicId } })).url).toBe(
       url(publicId, 'png'),
     );

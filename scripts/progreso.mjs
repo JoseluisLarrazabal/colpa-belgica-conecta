@@ -1,7 +1,14 @@
 // Corre Jest en cada app con tests, cruza los tests (RF-NN en el nombre)
 // con docs/requisitos.json y escribe docs/progreso.md.
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -74,8 +81,10 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   // packages/* nunca es evidencia de un RF: solo se leen los reportes de apps/*.
   // Tiene tests si hay jest.config* o una clave `jest` en package.json (la app móvil usa esta).
   const conJest = (d) =>
-    readdirSync(d).some((f) => f.startsWith('jest.config')) ||
-    !!JSON.parse(readFileSync(join(d, 'package.json'), 'utf8')).jest;
+    statSync(d).isDirectory() &&
+    existsSync(join(d, 'package.json')) &&
+    (readdirSync(d).some((f) => f.startsWith('jest.config')) ||
+      !!JSON.parse(readFileSync(join(d, 'package.json'), 'utf8')).jest);
   const dirs = readdirSync(join(raiz, 'apps'))
     .map((d) => join(raiz, 'apps', d))
     .filter(conJest);
