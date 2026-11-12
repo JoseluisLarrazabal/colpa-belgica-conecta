@@ -14,6 +14,9 @@ let pubId: string;
 
 const url = (publicId: string, ext = 'jpg') =>
   `https://res.cloudinary.com/${NUBE}/image/upload/${publicId}.${ext}`;
+// Las respuestas de lectura insertan la transformación de entrega; lo guardado queda sin ella.
+const entrega = (publicId: string) =>
+  url(publicId).replace('/image/upload/', '/image/upload/f_auto,q_auto,w_1080/');
 const firma = (t: string, id = pubId) =>
   request(a).post(`/api/v1/panel/publicaciones/${id}/imagenes/firma`).set(auth(t));
 const registrar = (t: string, body: object, id = pubId) =>
@@ -59,7 +62,7 @@ describe('RF-05 Adjuntar imágenes a la publicación', () => {
     expect(res.status).toBe(201);
     const propio = await api.obtener(a, pub, pubId);
     expect(propio.body.imagenes).toEqual([
-      expect.objectContaining({ publicId, url: url(publicId), orden: 0 }),
+      expect.objectContaining({ publicId, url: entrega(publicId), orden: 0 }),
     ]);
   });
 
