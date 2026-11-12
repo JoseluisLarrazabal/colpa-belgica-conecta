@@ -167,7 +167,9 @@ describe('RF-15 Consultar publicaciones de salud', () => {
         ].sort(),
       );
       expect(item.unidad).toBe('Dirección de Salud');
-      expect(item.imagenes).toEqual(urls);
+      expect(item.imagenes).toEqual(
+        urls.map((u) => u.replace('/image/upload/', '/image/upload/f_auto,q_auto,w_1080/')),
+      );
     }
     expect(Object.keys(detalle.body).sort()).toEqual(['generadoEn', 'publicacion']);
   });
@@ -259,7 +261,9 @@ describe('RF-15 Consultar publicaciones de salud', () => {
     const p = await crear();
     for (const url of [L, `${L}/${p.id}`]) {
       const r1 = await request(a).get(url);
-      expect(r1.headers['cache-control']).toBe('no-cache');
+      expect(r1.headers['cache-control']).toBe(
+        'public, max-age=0, s-maxage=30, stale-while-revalidate=60',
+      );
       const etag = r1.headers['etag'] as string;
       expect(etag).toBeTruthy();
       const r2 = await request(a).get(url).set('If-None-Match', etag);
@@ -328,7 +332,9 @@ describe('RF-16 Visualizar comunicados destacados en la pantalla principal', () 
   it('ETag: responde 304 si no cambió', async () => {
     await destacada();
     const r1 = await request(a).get(`${L}/destacadas`);
-    expect(r1.headers['cache-control']).toBe('no-cache');
+    expect(r1.headers['cache-control']).toBe(
+      'public, max-age=0, s-maxage=30, stale-while-revalidate=60',
+    );
     const r2 = await request(a)
       .get(`${L}/destacadas`)
       .set('If-None-Match', r1.headers['etag'] as string);
