@@ -11,3 +11,12 @@ describe('GET /api/v1/health', () => {
     expect(res.body).toEqual({ status: 'ok', db: 'ok' });
   });
 });
+
+describe('rutas desconocidas', () => {
+  it('responde 404 en JSON con la forma del manejador de errores', async () => {
+    const res = await request(crearApp()).get('/api/v1/no-existe');
+    expect(res.status).toBe(404);
+    expect(res.headers['content-type']).toMatch(/json/);
+    expect(res.body).toEqual({ error: 'No encontrado' });
+  });
+});
