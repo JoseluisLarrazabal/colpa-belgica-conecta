@@ -1,5 +1,16 @@
 # Plan: SRS IEEE 830 y puesta en marcha del código de Colpa Bélgica Conecta (meta: demo del 30% en ~4 semanas)
 
+> **Correcciones vigentes (2026-11-12)**: prevalecen sobre el texto de abajo, que es el plan original del 2026-11-03. Detalle en [reevaluacion-2026-11-12.md](reevaluacion-2026-11-12.md).
+> - **Hosting**: Vercel (API) + Neon (Postgres 18), no Railway. Cada merge a `main` despliega producción. Hay un solo entorno (`production`, con datos ficticios).
+> - **RF-26**: nada de `node-cron` (serverless). Va con Vercel Cron/Schedules y un endpoint idempotente.
+> - **Ficha**: columnas explícitas, no `detalle Json`. **Imágenes**: RN `Image` con transformación de Cloudinary; `expo-image` solo si lo pide la fase offline.
+> - **Los 80 casos de prueba** están en el Cap. III (`04-cap3.md`), no en el II.
+> - **Métrica**: `pnpm progreso` no leía el móvil (corregido en `fix/robustez-demo`). El 30 % se juzga en el teléfono: hoy 10/35. El núcleo son 14 RF (incluye RF-14), no 13.
+> - **Gates incumplidos**: Fase 0 (app en Android) y Fase 3 (flujo en Android). La Fase 3 sigue abierta: faltan Cuentas, Auditoría y Publicadas/Archivar.
+> - **Demo con APK `preview` de EAS**, no Expo Go (Expo Go Android no tiene push remoto desde SDK 53). Push (RF-24/25/27) baja a "solo si sobra"; la extensión va por offline (RF-29..31) y RF-12/13.
+> - **Codex sin cuota hasta el 3-dic**: el hook no corre.
+> - **Abiertas (CTO)**: Figma vs HTML (T5), cronograma del Sprint 0 (T8), criterio del 30 % del tutor.
+
 ## Contexto
 - **El requisito.** Para avanzar, el software tiene que estar al 30%. El tutor lo mide con una **demo funcional en teléfono**, alrededor del **1-dic-2026**.
 - **Estado real.** El código de la app está al **0%**. No existe ningún repo ni ningún archivo de código. Lo que sí existe es el diseño completo en el Documento PG, Cap. II (`Documento PG - Trabajo/fuente/03-cap2a..d.md`):
