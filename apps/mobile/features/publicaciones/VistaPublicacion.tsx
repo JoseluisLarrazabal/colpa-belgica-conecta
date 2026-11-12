@@ -4,10 +4,30 @@ import { FichaLista } from '../../components/FichaLista';
 import { Txt } from '../../components/Txt';
 import { RADIO, colores } from '../../theme';
 import { ETIQUETA_MODULO, ETIQUETA_TIPO } from './etiquetas';
-import type { PublicacionDto } from './tipos';
+import type { ImagenDto, PublicacionDto } from './tipos';
+
+/** Lo que se muestra al habitante: sirve a la ficha del panel y al DTO público (que añade `unidad`). */
+export type DatosVista = Pick<
+  PublicacionDto,
+  | 'modulo'
+  | 'tipo'
+  | 'titulo'
+  | 'detalle'
+  | 'tipoVacuna'
+  | 'fechaInicio'
+  | 'fechaFin'
+  | 'hora'
+  | 'lugar'
+  | 'poblacionObjetivo'
+  | 'requisitos'
+> & {
+  imagenes?: Pick<ImagenDto, 'id' | 'url'>[];
+  unidad?: string;
+  unidadEducativa?: string | null;
+};
 
 /** Cómo la verá el habitante: chips de tipo, título, ficha en orden fijo, imágenes. Solo lectura. */
-export function VistaPublicacion({ p }: { p: PublicacionDto }) {
+export function VistaPublicacion({ p }: { p: DatosVista }) {
   return (
     <View>
       <View style={s.chips}>
@@ -21,8 +41,10 @@ export function VistaPublicacion({ p }: { p: PublicacionDto }) {
       <Txt v="t24" style={s.titulo} accessibilityRole="header">
         {p.titulo}
       </Txt>
-      {p.tipoVacuna && <Txt v="t14" tenue>{`Vacuna: ${p.tipoVacuna}`}</Txt>}
-      {p.detalle && (
+      {!!p.unidad && <Txt v="t14" tenue>{`Emitido por ${p.unidad}`}</Txt>}
+      {!!p.unidadEducativa && <Txt v="t14" tenue>{`Unidad educativa: ${p.unidadEducativa}`}</Txt>}
+      {!!p.tipoVacuna && <Txt v="t14" tenue>{`Vacuna: ${p.tipoVacuna}`}</Txt>}
+      {!!p.detalle && (
         <Txt v="t16" style={s.detalle}>
           {p.detalle}
         </Txt>

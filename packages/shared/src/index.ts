@@ -3,3 +3,4 @@ export * from './catalogo';
 export * from './dominio/permisos';
 export * from './schemas/funcionario';
 export * from './schemas/publicacion';
+export * from './dominio/publico';

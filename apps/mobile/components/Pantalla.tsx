@@ -17,11 +17,21 @@ interface Props {
   banda?: ReactNode;
   /** Barra de acciones fija abajo. */
   acciones?: ReactNode;
+  /** Texto del banner sin conexión (por defecto, el del panel). */
+  textoSinRed?: string;
   children: ReactNode;
 }
 
 /** Marco de pantalla del diseño C: barra superior 56 dp, contenido, acciones fijas. */
-export function Pantalla({ titulo, atras, derecha, banda, acciones, children }: Props) {
+export function Pantalla({
+  titulo,
+  atras,
+  derecha,
+  banda,
+  acciones,
+  textoSinRed,
+  children,
+}: Props) {
   const insets = useSafeAreaInsets();
   const red = useNetworkState();
   const sinRed = red.isConnected === false || red.isInternetReachable === false;
@@ -43,7 +53,7 @@ export function Pantalla({ titulo, atras, derecha, banda, acciones, children }: 
         </Txt>
         {derecha}
       </View>
-      {sinRed && <BannerSinConexion />}
+      {sinRed && <BannerSinConexion texto={textoSinRed} />}
       {banda}
       <View style={s.cuerpo}>{children}</View>
       {acciones && (
