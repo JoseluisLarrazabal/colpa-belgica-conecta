@@ -32,6 +32,8 @@ interface Opciones {
   token?: string;
 }
 
+const TIMEOUT_MS = 15000;
+
 const base = () => {
   const url = process.env.EXPO_PUBLIC_API_URL;
   if (!url) throw new Error('Falta EXPO_PUBLIC_API_URL: no se sabe a qué servidor conectar');
@@ -50,18 +52,29 @@ export async function api<T = void>(
   if (t) headers['Authorization'] = `Bearer ${t}`;
 
   const url = `${base()}${ruta}`; // fuera del try: una URL mal configurada no es "sin conexión"
+  // AbortController manual (no AbortSignal.timeout, ausente en algunas versiones de Hermes); el plazo cubre también la lectura del cuerpo.
+  const control = new AbortController();
+  const plazo = setTimeout(() => control.abort(), TIMEOUT_MS);
   let res: Response;
+  let texto: string;
   try {
     res = await fetch(url, {
       method: metodo,
       headers,
       body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
+      signal: control.signal,
     });
+    texto = await res.text();
   } catch {
-    throw new ApiError(0, 'No hay conexión con el servidor');
+    throw new ApiError(
+      0,
+      control.signal.aborted
+        ? 'La conexión tardó demasiado. Intente de nuevo.'
+        : 'No hay conexión con el servidor',
+    );
+  } finally {
+    clearTimeout(plazo);
   }
-
-  const texto = await res.text();
   let json: unknown = null;
   try {
     json = texto ? JSON.parse(texto) : null;
