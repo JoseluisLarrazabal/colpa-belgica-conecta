@@ -55,22 +55,22 @@ Tres auditorías de solo lectura, informes completos en `docs/auditorias/2026-11
 
 ## Backlog para la demo (19 días)
 
-| # | Ítem | RF | Esfuerzo | Límite | Quién |
-|---|------|----|----------|--------|-------|
-| P0-1 | Cuenta Expo + `eas login` | habilita APK | 15 min | 13-nov | **CTO** |
-| P0-2 | Criterio del 30 % del tutor, por escrito | — | — | 15-nov | **CTO** |
-| P0-3 | Prueba hoy en Expo Go (Android del CTO) del núcleo contra Vercel | RF-01, 04..08, 11, 14..16 | 0,5 d | 13-nov | CTO + chairman |
-| P0-4 | `android.package`, `eas.json` (perfil `preview` APK, `EXPO_PUBLIC_API_URL`, Node 24), primer APK con `expo-sqlite` | — | 0,5–1 d | 15-nov | Sonnet + CTO |
-| P0-5 | Prueba en dispositivo con APK: imagen desde el teléfono, escala 200 %, TalkBack, `expo-doctor`; capturas `docs/evidencias/RF-xx-dispositivo.png` | núcleo | 1 d + arreglos 1–2 d | 17-nov | CTO + Sonnet |
-| P1-1 | "Publicadas" del Aprobador con Archivar | RF-09 | 0,5 d | 18-nov | Sonnet |
-| P1-2 | Pantallas Cuentas (alta, edición, rol, desactivar) y Auditoría (la API ya existe) | RF-02, 03, 10 | 2–3 d | 21-nov | Sonnet |
-| P1-3 | Rama `demo-baseline` + procedimiento de reinicio + `docs/demo.md` (guion de 5 min) | demo | 0,5 d | 22-nov | chairman |
-| P1-4 | PR de seguridad del login + auditoría de cuentas | RF-01, 02, 10 | 1 d | 22-nov | Sonnet |
-| P2-1 | Campos propios de jornada y entrega | RF-12, 13 | 1 d | 23-nov | Sonnet |
-| P2-2 | Offline: persistencia de Query (expo-sqlite), sello desde `dataUpdatedAt`/`Date`, `placeholderData` del detalle | RF-29, 30, 31 | 2–3 d | 26-nov | Sonnet |
-| P2-3 | IDs de caso de prueba (CP) en los nombres de los tests | evidencia tesis | 0,5 d | 26-nov | Sonnet |
-| P3-1 | Video de respaldo y 3 corridas seguidas con la rama reiniciada; warm-up de la API antes | demo | 1 d | 28–30-nov | CTO |
-| — | Margen para fallos en dispositivo | — | 2–3 d | — | — |
+| #    | Ítem                                                                                                                                             | RF                        | Esfuerzo             | Límite    | Quién          |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------- | -------------------- | --------- | -------------- |
+| P0-1 | Cuenta Expo + `eas login`                                                                                                                        | habilita APK              | 15 min               | 13-nov    | **CTO**        |
+| P0-2 | Criterio del 30 % del tutor, por escrito                                                                                                         | —                         | —                    | 15-nov    | **CTO**        |
+| P0-3 | Prueba hoy en Expo Go (Android del CTO) del núcleo contra Vercel                                                                                 | RF-01, 04..08, 11, 14..16 | 0,5 d                | 13-nov    | CTO + chairman |
+| P0-4 | `android.package`, `eas.json` (perfil `preview` APK, `EXPO_PUBLIC_API_URL`, Node 24), primer APK con `expo-sqlite`                               | —                         | 0,5–1 d              | 15-nov    | Sonnet + CTO   |
+| P0-5 | Prueba en dispositivo con APK: imagen desde el teléfono, escala 200 %, TalkBack, `expo-doctor`; capturas `docs/evidencias/RF-xx-dispositivo.png` | núcleo                    | 1 d + arreglos 1–2 d | 17-nov    | CTO + Sonnet   |
+| P1-1 | "Publicadas" del Aprobador con Archivar                                                                                                          | RF-09                     | 0,5 d                | 18-nov    | Sonnet         |
+| P1-2 | Pantallas Cuentas (alta, edición, rol, desactivar) y Auditoría (la API ya existe)                                                                | RF-02, 03, 10             | 2–3 d                | 21-nov    | Sonnet         |
+| P1-3 | Rama `demo-baseline` + procedimiento de reinicio + `docs/demo.md` (guion de 5 min)                                                               | demo                      | 0,5 d                | 22-nov    | chairman       |
+| P1-4 | PR de seguridad del login + auditoría de cuentas                                                                                                 | RF-01, 02, 10             | 1 d                  | 22-nov    | Sonnet         |
+| P2-1 | Campos propios de jornada y entrega                                                                                                              | RF-12, 13                 | 1 d                  | 23-nov    | Sonnet         |
+| P2-2 | Offline: persistencia de Query (expo-sqlite), sello desde `dataUpdatedAt`/`Date`, `placeholderData` del detalle                                  | RF-29, 30, 31             | 2–3 d                | 26-nov    | Sonnet         |
+| P2-3 | IDs de caso de prueba (CP) en los nombres de los tests                                                                                           | evidencia tesis           | 0,5 d                | 26-nov    | Sonnet         |
+| P3-1 | Video de respaldo y 3 corridas seguidas con la rama reiniciada; warm-up de la API antes                                                          | demo                      | 1 d                  | 28–30-nov | CTO            |
+| —    | Margen para fallos en dispositivo                                                                                                                | —                         | 2–3 d                | —         | —              |
 
 Total: unos 13–16 días de 19. Push queda fuera salvo que sobre margen.
 
