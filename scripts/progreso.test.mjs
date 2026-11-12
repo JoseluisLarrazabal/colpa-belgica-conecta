@@ -47,3 +47,20 @@ test('el porcentaje es RF cubiertos sobre el total', () => {
   assert.equal(cubiertos, 1);
   assert.equal(pct, '25.0');
 });
+
+test('muestra por app dónde se cubre cada RF', () => {
+  const reqs = ['RF-01', 'RF-02'].map((id) => ({ id, modulo: 'M01', titulo: 't' }));
+  const total = new Map([
+    ['RF-01', { ok: 3, mal: 0 }],
+    ['RF-02', { ok: 1, mal: 0 }],
+  ]);
+  const { md } = renderizar(reqs, total, '2026-01-01', {
+    API: new Map([['RF-01', { ok: 2, mal: 0 }]]),
+    Móvil: new Map([
+      ['RF-01', { ok: 1, mal: 0 }],
+      ['RF-02', { ok: 1, mal: 0 }],
+    ]),
+  });
+  assert.match(md, /RF-01 \| M01 \| t \| Con test verde \| 3 \| 2 \| 1 \|/);
+  assert.match(md, /RF-02 \| M01 \| t \| Con test verde \| 1 \| — \| 1 \|/);
+});
