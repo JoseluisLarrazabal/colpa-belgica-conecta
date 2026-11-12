@@ -13,10 +13,12 @@ export const moduloDeTipo = (tipo: TipoPublicacion): Modulo =>
     (CATALOGO[m] as readonly string[]).includes(tipo),
   )!;
 
+// fechaFin es opcional: vaciarla se envía como null (la API la borra); el resto de campos no admite null.
 const EDITABLES = [
   'titulo',
   'detalle',
   'fechaInicio',
+  'fechaFin',
   'hora',
   'lugar',
   'poblacionObjetivo',
@@ -26,8 +28,8 @@ const EDITABLES = [
 export const MSG_VACIO_EDICION = 'Este campo no puede quedar vacío al editar';
 
 /**
- * Campos que tenían valor y el usuario dejó vacíos. editarFichaSchema solo acepta strings no
- * vacíos (sin null), así que no hay forma de borrarlos por PATCH: el formulario bloquea el guardado.
+ * Campos que tenían valor y el usuario dejó vacíos. Salvo fechaFin (opcional, se envía null), editarFichaSchema
+ * solo acepta strings no vacíos, así que no hay forma de borrarlos por PATCH: el formulario bloquea el guardado.
  */
 export function vaciados(
   valores: Record<string, unknown>,
@@ -36,13 +38,13 @@ export function vaciados(
 ): string[] {
   const previo = actual as unknown as Record<string, string | null>;
   return [...EDITABLES, ...extras].filter(
-    (k) => !String(valores[k] ?? '').trim() && (previo[k] ?? '') !== '',
+    (k) => k !== 'fechaFin' && !String(valores[k] ?? '').trim() && (previo[k] ?? '') !== '',
   );
 }
 
 /**
  * Cambios para PATCH: solo campos no vacíos y distintos de lo guardado (los vacíos se
- * reportan con `vaciados`) y `destacado` si cambió.
+ * reportan con `vaciados`; fechaFin vaciada va como null) y `destacado` si cambió.
  */
 export function parche(
   valores: Record<string, unknown>,
@@ -50,10 +52,11 @@ export function parche(
   extras: readonly string[],
 ): EditarFichaInput {
   const previo = actual as unknown as Record<string, string | null>;
-  const out: Record<string, string | boolean> = {};
+  const out: Record<string, string | boolean | null> = {};
   for (const k of [...EDITABLES, ...extras]) {
     const nuevo = String(valores[k] ?? '').trim();
-    if (nuevo && nuevo !== (previo[k] ?? '')) out[k] = nuevo;
+    if (k === 'fechaFin' && !nuevo && previo[k]) out[k] = null;
+    else if (nuevo && nuevo !== (previo[k] ?? '')) out[k] = nuevo;
   }
   if (typeof valores.destacado === 'boolean' && valores.destacado !== actual.destacado)
     out.destacado = valores.destacado;

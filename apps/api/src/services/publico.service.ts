@@ -3,7 +3,7 @@ import { TIPOS_DESTACABLES, type ListarPublicasInput } from '@colpa/shared';
 import { prisma } from '../db';
 import { ErrorHttp } from '../middleware/error';
 import type { Prisma } from '../generated/prisma/client';
-import { fechaIso, horaHm } from './publicacion.service';
+import { fechaIso, horaHm, urlEntrega } from './publicacion.service';
 
 // Solo campos aptos para el ciudadano: sin autor, aprobador, observaciones ni auditoría.
 const SELECT = {
@@ -58,7 +58,7 @@ const aDtoPublico = (p: Fila) => ({
   unidadEducativa: p.unidadEducativa,
   destacado: p.destacado,
   unidad: p.unidad.nombre,
-  imagenes: p.imagenes.map((i) => i.url),
+  imagenes: p.imagenes.map((i) => urlEntrega(i.url)),
   publicadoEn: p.publicadoEn,
   actualizadoEn: p.actualizadoEn,
 });

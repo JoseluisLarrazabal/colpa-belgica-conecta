@@ -9,6 +9,7 @@ export default tseslint.config(
       '**/generated/**',
       '**/.expo/**',
       '**/dist/**',
+      '.claude/**',
       'apps/api/prisma/migrations/**',
     ],
   },

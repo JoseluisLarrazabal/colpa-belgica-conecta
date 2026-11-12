@@ -4,7 +4,7 @@ import { cloudinary } from '../config';
 import { prisma } from '../db';
 import { ErrorHttp } from '../middleware/error';
 import { Prisma } from '../generated/prisma/client';
-import { borradorPropio, type Actor } from './publicacion.service';
+import { borradorPropio, imagenDto, type Actor } from './publicacion.service';
 
 function credenciales() {
   const c = cloudinary();
@@ -73,9 +73,11 @@ export function registrar(publicacionId: string, d: RegistrarImagenInput, f: Act
     if (total >= MAX_IMAGENES) throw topeExcedido();
     const { _max } = await tx.imagen.aggregate({ where: { publicacionId }, _max: { orden: true } });
     try {
-      return await tx.imagen.create({
-        data: { publicacionId, url, publicId: d.publicId, orden: (_max.orden ?? -1) + 1 },
-      });
+      return imagenDto(
+        await tx.imagen.create({
+          data: { publicacionId, url, publicId: d.publicId, orden: (_max.orden ?? -1) + 1 },
+        }),
+      );
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
         throw new ErrorHttp(409, 'La imagen ya está registrada');

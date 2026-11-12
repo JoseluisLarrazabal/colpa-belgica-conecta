@@ -108,6 +108,30 @@ describe('RF-04 Elaborar publicación con ficha estructurada', () => {
     );
   });
 
+  it('fechaFin: se guarda por PATCH y no puede ser anterior al inicio', async () => {
+    const { body } = await api.crear(a, pub);
+    const ok = await api.editar(a, pub, body.id, { fechaFin: '2099-01-02' });
+    expect(ok.status).toBe(200);
+    expect(ok.body.fechaFin).toBe('2099-01-02');
+    const mal = await api.editar(a, pub, body.id, { fechaFin: '2000-01-01' });
+    expect(mal.status).toBe(400);
+  });
+
+  it('fechaInicio posterior a la fechaFin guardada => 400', async () => {
+    const { body } = await api.crear(a, pub);
+    expect((await api.editar(a, pub, body.id, { fechaFin: '2099-01-02' })).status).toBe(200);
+    const mal = await api.editar(a, pub, body.id, { fechaInicio: '2099-02-01' });
+    expect(mal.status).toBe(400);
+  });
+
+  it('fechaFin: null en un borrador la borra', async () => {
+    const { body } = await api.crear(a, pub);
+    await api.editar(a, pub, body.id, { fechaFin: '2099-01-02' });
+    const r = await api.editar(a, pub, body.id, { fechaFin: null });
+    expect(r.status).toBe(200);
+    expect((await api.obtener(a, pub, body.id)).body.fechaFin).toBeNull();
+  });
+
   it('editar una publicación En revisión o Publicada responde 409', async () => {
     const { body } = await api.crear(a, pub);
     await api.accion(a, pub, body.id, 'enviar');

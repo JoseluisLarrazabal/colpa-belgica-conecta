@@ -61,6 +61,20 @@ describe('parche de edición', () => {
     expect(parche(v, actual, ['tipoVacuna'])).toEqual({ lugar: 'Otra posta' });
   });
 
+  it('envía fechaFin al agregarla o cambiarla', () => {
+    expect(parche({ ...completa, fechaFin: '2026-11-17' }, actual, [])).toEqual({
+      fechaFin: '2026-11-17',
+    });
+    expect(parche({ ...completa, fechaFin: '' }, actual, [])).toEqual({});
+  });
+
+  it('fechaFin vaciada se envía como null y no cuenta como vaciado', () => {
+    const conFin = { ...actual, fechaFin: '2026-11-17' } as PublicacionDto;
+    const v = { ...completa, fechaFin: '' };
+    expect(parche(v, conFin, [])).toEqual({ fechaFin: null });
+    expect(vaciados(v, conFin, [])).toEqual([]);
+  });
+
   it('incluye los campos extra del tipo', () => {
     expect(parche({ ...completa, tipoVacuna: 'Polio' }, actual, ['tipoVacuna'])).toEqual({
       tipoVacuna: 'Polio',

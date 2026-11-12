@@ -32,6 +32,13 @@ const aHora = (s: string) => new Date(`1970-01-01T${s}:00Z`);
 export const fechaIso = (d: Date | null) => d?.toISOString().slice(0, 10) ?? null;
 export const horaHm = (d: Date | null) => d?.toISOString().slice(11, 16) ?? null;
 
+/** Transformación de entrega de Cloudinary: formato/calidad automáticos y ancho máx. 1080 px (el original queda guardado intacto). */
+const TRANSFORMACION = 'f_auto,q_auto,w_1080';
+/** Inserta la transformación tras `/image/upload/`. En la BD queda la URL cruda; toda respuesta con imágenes pasa por `imagenDto` o `urlEntrega`. */
+export const urlEntrega = (url: string) =>
+  url.replace('/image/upload/', `/image/upload/${TRANSFORMACION}/`);
+export const imagenDto = <T extends { url: string }>(i: T) => ({ ...i, url: urlEntrega(i.url) });
+
 /** Fila -> representación de la API (misma forma que la ficha de entrada). */
 export function aDto<T extends Publicacion>(p: T) {
   return {
@@ -162,7 +169,7 @@ export async function obtener(id: string, f: Actor) {
     include: { imagenes: { orderBy: { orden: 'asc' } } },
   });
   if (!p) throw noExiste();
-  return aDto(p);
+  return aDto({ ...p, imagenes: p.imagenes.map(imagenDto) });
 }
 
 /** Efecto de cada acción sobre la fila, además del cambio de estado. */

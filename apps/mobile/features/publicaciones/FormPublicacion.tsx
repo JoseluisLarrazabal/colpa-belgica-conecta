@@ -29,7 +29,14 @@ import { ImagenesFicha } from './ImagenesFicha';
 import type { PublicacionDto } from './tipos';
 
 type Nombre =
-  'titulo' | 'detalle' | 'fechaInicio' | 'hora' | 'lugar' | 'poblacionObjetivo' | 'requisitos';
+  | 'titulo'
+  | 'detalle'
+  | 'fechaInicio'
+  | 'fechaFin'
+  | 'hora'
+  | 'lugar'
+  | 'poblacionObjetivo'
+  | 'requisitos';
 
 interface Props {
   tipo: TipoPublicacion;
@@ -48,6 +55,7 @@ const valoresIniciales = (tipo: TipoPublicacion, p?: PublicacionDto) => {
     titulo: p?.titulo ?? '',
     detalle: p?.detalle ?? '',
     fechaInicio: p?.fechaInicio ?? '',
+    fechaFin: p?.fechaFin ?? '',
     hora: p?.hora ?? '',
     lugar: p?.lugar ?? '',
     poblacionObjetivo: p?.poblacionObjetivo ?? '',
@@ -271,12 +279,16 @@ export function FormPublicacion({ tipo, publicacion, selector, onCreada }: Props
             })}
           </View>
           <View style={s.mitad}>
-            {campo('hora', 'Hora', {
-              placeholder: 'HH:MM',
+            {campo('fechaFin', 'Fecha de fin (opcional)', {
+              placeholder: 'AAAA-MM-DD',
               keyboardType: 'numbers-and-punctuation',
             })}
           </View>
         </View>
+        {campo('hora', 'Hora', {
+          placeholder: 'HH:MM',
+          keyboardType: 'numbers-and-punctuation',
+        })}
         {campo('lugar', 'Lugar', { maxLength: 150 })}
         {campo('poblacionObjetivo', 'Público objetivo', { maxLength: 150 })}
         {campo('requisitos', 'Requisitos', { multiline: true })}

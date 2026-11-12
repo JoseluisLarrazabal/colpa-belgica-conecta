@@ -90,3 +90,24 @@ it('fuera de desarrollo exige https', async () => {
     (globalThis as { __DEV__?: boolean }).__DEV__ = dev;
   }
 });
+
+it('aborta a los 15 s y responde con un mensaje de lentitud', async () => {
+  jest.useFakeTimers();
+  try {
+    fetchMock.mockImplementation(
+      (_u: string, init: RequestInit) =>
+        new Promise((_ok, mal) =>
+          init.signal?.addEventListener('abort', () => mal(new Error('abort'))),
+        ),
+    );
+    const p = api('/panel/publicaciones');
+    const esperado = expect(p).rejects.toMatchObject({
+      status: 0,
+      message: 'La conexión tardó demasiado. Intente de nuevo.',
+    });
+    await jest.advanceTimersByTimeAsync(15000);
+    await esperado;
+  } finally {
+    jest.useRealTimers();
+  }
+});

@@ -11,6 +11,9 @@ export function crearApp(opciones?: OpcionesApi) {
   app.use(helmet());
   app.use(express.json());
   app.use('/api/v1', crearApiV1(opciones));
+  app.use((_req, res) => {
+    res.status(404).json({ error: 'No encontrado' });
+  });
   app.use(manejarError);
   return app;
 }
