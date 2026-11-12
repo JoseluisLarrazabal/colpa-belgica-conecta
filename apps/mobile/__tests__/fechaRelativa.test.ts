@@ -24,4 +24,8 @@ describe('RF-16 fecha relativa de Próximas actividades (America/La_Paz)', () =>
     expect(fechaRelativa('2026-11-01', noche, '2026-11-06')).toBe('En curso');
     expect(fechaRelativa('2026-11-01', noche, '2026-11-03')).toBe('Dom 1 nov');
   });
+
+  it('a las 01:00Z del 1-dic en La Paz aún es 30-nov: el 1-dic es "Mañana"', () => {
+    expect(fechaRelativa('2026-12-01', new Date('2026-12-01T01:00:00Z'))).toBe('Mañana');
+  });
 });

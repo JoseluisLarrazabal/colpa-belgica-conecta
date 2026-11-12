@@ -69,7 +69,7 @@ export const TarjetaDestacada = memo(function TarjetaDestacada({ p, onAbrir }: P
         <Image source={{ uri: p.imagenes[0] }} style={s.foto} accessible={false} />
       ) : (
         <View style={[s.foto, s.sinFoto]}>
-          <MaterialCommunityIcons name="medical-bag" size={48} color={colores.primary} />
+          <MaterialCommunityIcons name={ICONO_MODULO[p.modulo]} size={48} color={colores.primary} />
         </View>
       )}
       <View style={s.cuerpo}>

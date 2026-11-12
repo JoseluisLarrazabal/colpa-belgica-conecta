@@ -9,7 +9,7 @@ import { Txt } from '../../components/Txt';
 import { FilaPublica, TarjetaDestacada } from '../../features/publico/TarjetaPublica';
 import { useDestacadas, useProximas } from '../../features/publico/hooks';
 import { abrirPublicacion } from '../../features/publico/navegar';
-import { SIN_RED_HABITANTE, masReciente } from '../../features/publico/texto';
+import { SIN_RED_HABITANTE, masAntiguo } from '../../features/publico/texto';
 import { useSesion } from '../../lib/sesion';
 import { colores } from '../../theme';
 
@@ -27,7 +27,9 @@ export default function Inicio() {
   }
 
   // Una actividad tiene fecha; lo ya mostrado en Destacados no se repite.
-  const actividades = proximas.data?.datos.filter((p) => p.fechaInicio && !p.destacado) ?? [];
+  const idsDestacadas = new Set(destacadas.data?.datos.map((d) => d.id) ?? []);
+  const actividades =
+    proximas.data?.datos.filter((p) => p.fechaInicio && !idsDestacadas.has(p.id)) ?? [];
 
   return (
     <Pantalla
@@ -45,7 +47,7 @@ export default function Inicio() {
       }
       banda={
         <SelloActualizacion
-          fecha={masReciente(destacadas.data?.generadoEn, proximas.data?.generadoEn)}
+          fecha={masAntiguo(destacadas.data?.generadoEn, proximas.data?.generadoEn)}
         />
       }
     >
@@ -58,9 +60,9 @@ export default function Inicio() {
         </Txt>
         {destacadas.isPending ? (
           <Cargando />
-        ) : destacadas.isError ? (
+        ) : !destacadas.data ? (
           <ErrorCarga
-            mensaje={destacadas.error.message}
+            mensaje={destacadas.error!.message}
             onReintentar={() => void destacadas.refetch()}
           />
         ) : destacadas.data.datos.length ? (
@@ -78,9 +80,9 @@ export default function Inicio() {
         </Txt>
         {proximas.isPending ? (
           <Cargando />
-        ) : proximas.isError ? (
+        ) : !proximas.data ? (
           <ErrorCarga
-            mensaje={proximas.error.message}
+            mensaje={proximas.error!.message}
             onReintentar={() => void proximas.refetch()}
           />
         ) : actividades.length ? (

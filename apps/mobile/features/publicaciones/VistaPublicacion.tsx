@@ -20,7 +20,11 @@ export type DatosVista = Pick<
   | 'lugar'
   | 'poblacionObjetivo'
   | 'requisitos'
-> & { imagenes?: Pick<ImagenDto, 'id' | 'url'>[]; unidad?: string };
+> & {
+  imagenes?: Pick<ImagenDto, 'id' | 'url'>[];
+  unidad?: string;
+  unidadEducativa?: string | null;
+};
 
 /** Cómo la verá el habitante: chips de tipo, título, ficha en orden fijo, imágenes. Solo lectura. */
 export function VistaPublicacion({ p }: { p: DatosVista }) {
@@ -37,9 +41,10 @@ export function VistaPublicacion({ p }: { p: DatosVista }) {
       <Txt v="t24" style={s.titulo} accessibilityRole="header">
         {p.titulo}
       </Txt>
-      {p.unidad && <Txt v="t14" tenue>{`Emitido por ${p.unidad}`}</Txt>}
-      {p.tipoVacuna && <Txt v="t14" tenue>{`Vacuna: ${p.tipoVacuna}`}</Txt>}
-      {p.detalle && (
+      {!!p.unidad && <Txt v="t14" tenue>{`Emitido por ${p.unidad}`}</Txt>}
+      {!!p.unidadEducativa && <Txt v="t14" tenue>{`Unidad educativa: ${p.unidadEducativa}`}</Txt>}
+      {!!p.tipoVacuna && <Txt v="t14" tenue>{`Vacuna: ${p.tipoVacuna}`}</Txt>}
+      {!!p.detalle && (
         <Txt v="t16" style={s.detalle}>
           {p.detalle}
         </Txt>
