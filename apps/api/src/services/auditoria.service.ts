@@ -38,7 +38,17 @@ export async function consultar(f: ConsultarAuditoriaInput) {
       funcionario: { select: { id: true, nombreCompleto: true, identificadorCuenta: true } },
     },
   });
-  return registros.length
-    ? { registros }
-    : { registros, mensaje: 'No existen registros para el criterio indicado' };
+  // Una sola consulta para toda la página; un descartado ya no existe -> título null.
+  const pubs = await prisma.publicacion.findMany({
+    where: { id: { in: [...new Set(registros.map((r) => r.entidadId))] } },
+    select: { id: true, titulo: true },
+  });
+  const titulos = new Map(pubs.map((p) => [p.id, p.titulo]));
+  const conTitulo = registros.map((r) => ({
+    ...r,
+    publicacionTitulo: titulos.get(r.entidadId) ?? null,
+  }));
+  return conTitulo.length
+    ? { registros: conTitulo }
+    : { registros: conTitulo, mensaje: 'No existen registros para el criterio indicado' };
 }

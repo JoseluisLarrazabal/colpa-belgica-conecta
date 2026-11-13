@@ -7,15 +7,15 @@ Generado el 2026-11-13 por `pnpm progreso`.
 | RF | Módulo | Título | Estado | Tests verdes | API | Móvil |
 |----|--------|--------|--------|--------------|------|------|
 | RF-01 | M01 | Iniciar sesión | Con test verde | 17 | 17 | — |
-| RF-02 | M01 | Gestionar cuentas de funcionarios | Con test verde | 12 | 12 | — |
-| RF-03 | M01 | Asignar rol a una cuenta | Con test verde | 7 | 7 | — |
+| RF-02 | M01 | Gestionar cuentas de funcionarios | Con test verde | 16 | 12 | 4 |
+| RF-03 | M01 | Asignar rol a una cuenta | Con test verde | 8 | 7 | 1 |
 | RF-04 | M01 | Elaborar publicación con ficha estructurada | Con test verde | 17 | 14 | 3 |
 | RF-05 | M01 | Adjuntar imágenes a la publicación | Con test verde | 14 | 9 | 5 |
 | RF-06 | M01 | Enviar publicación a revisión | Con test verde | 3 | 3 | — |
 | RF-07 | M01 | Publicar publicación revisada | Con test verde | 3 | 3 | — |
 | RF-08 | M01 | Devolver publicación con observaciones | Con test verde | 5 | 5 | — |
-| RF-09 | M01 | Archivar publicación | Con test verde | 2 | 2 | — |
-| RF-10 | M01 | Consultar el registro de auditoría | Con test verde | 5 | 5 | — |
+| RF-09 | M01 | Archivar publicación | Con test verde | 5 | 2 | 3 |
+| RF-10 | M01 | Consultar el registro de auditoría | Con test verde | 10 | 7 | 3 |
 | RF-11 | M02 | Registrar campaña de vacunación | Con test verde | 6 | 6 | — |
 | RF-12 | M02 | Registrar jornada de atención o brigada móvil | Pendiente | 0 | — | — |
 | RF-13 | M02 | Registrar entrega de medicamentos e insumos | Pendiente | 0 | — | — |

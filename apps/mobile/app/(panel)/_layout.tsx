@@ -19,6 +19,10 @@ export default function PanelLayout() {
         <Stack.Screen name="revision/index" />
         <Stack.Screen name="revision/publicadas" />
         <Stack.Screen name="revision/[id]" />
+        <Stack.Screen name="cuentas/index" />
+        <Stack.Screen name="cuentas/nueva" />
+        <Stack.Screen name="cuentas/[id]" />
+        <Stack.Screen name="auditoria/index" />
       </Stack.Protected>
     </Stack>
   );

@@ -1,19 +1,13 @@
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import type { Rol } from '@colpa/shared';
 import { useSesion } from '../../lib/sesion';
 import { Boton } from '../../components/Boton';
 import { Pantalla } from '../../components/Pantalla';
 import { Txt } from '../../components/Txt';
+import { ETIQUETA_ROL } from '../../features/cuentas/etiquetas';
 import { usePublicaciones } from '../../features/publicaciones/hooks';
 import { RADIO, colores } from '../../theme';
-
-const ROL: Record<Rol, string> = {
-  PUBLICADOR: 'Publicador',
-  APROBADOR: 'Aprobador',
-  ADMIN_TECNICO: 'Administrador técnico',
-};
 
 /** Inicio del panel: lo que cada rol necesita primero. */
 export default function InicioPanel() {
@@ -38,24 +32,31 @@ export default function InicioPanel() {
       <ScrollView contentContainerStyle={s.scroll}>
         <Txt v="t24" accessibilityRole="header">{`Hola, ${funcionario?.nombreCompleto ?? ''}`}</Txt>
         <Txt v="t14" tenue>
-          {rol ? ROL[rol] : ''}
+          {rol ? ETIQUETA_ROL[rol] : ''}
         </Txt>
         {rol === 'PUBLICADOR' && <PanelPublicador />}
         {rol === 'APROBADOR' && <PanelAprobador />}
-        {rol === 'ADMIN_TECNICO' && (
-          <View style={s.tarjeta}>
-            <MaterialCommunityIcons
-              name="information-outline"
-              size={24}
-              color={colores.onSurfaceVariant}
-            />
-            <Txt v="t16" style={s.tarjetaTexto}>
-              La gestión de cuentas y la auditoría estarán disponibles en la próxima versión.
-            </Txt>
-          </View>
-        )}
+        {rol === 'ADMIN_TECNICO' && <PanelAdmin />}
       </ScrollView>
     </Pantalla>
+  );
+}
+
+function PanelAdmin() {
+  return (
+    <View style={s.bloque}>
+      <Boton
+        texto="Cuentas de funcionarios"
+        icono="account-multiple-outline"
+        onPress={() => router.push('/(panel)/cuentas')}
+      />
+      <Boton
+        texto="Auditoría"
+        variante="borde"
+        icono="history"
+        onPress={() => router.push('/(panel)/auditoria')}
+      />
+    </View>
   );
 }
 
