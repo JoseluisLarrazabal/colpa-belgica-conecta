@@ -8,6 +8,7 @@ import {
   auth,
   crearFuncionario,
   crearUnidad,
+  enDias,
   limpiar,
   token,
 } from './helpers';
@@ -41,7 +42,7 @@ describe('RF-04 Elaborar publicación con ficha estructurada', () => {
       estado: 'BORRADOR',
       unidadId,
       titulo: FICHA.titulo,
-      fechaInicio: '2026-12-10',
+      fechaInicio: FICHA.fechaInicio,
       hora: '09:30',
     });
     const filas = await auditoriaDe(res.body.id);
@@ -106,6 +107,21 @@ describe('RF-04 Elaborar publicación con ficha estructurada', () => {
     expect((await prisma.publicacion.findUniqueOrThrow({ where: { id: body.id } })).lugar).toBe(
       FICHA.lugar,
     );
+  });
+
+  it('RF-04: el inicio pasado solo se rechaza al crear; una ficha guardada se edita y se envía', async () => {
+    const mal = await api.crear(a, pub, { ...FICHA, fechaInicio: enDias(-1) });
+    expect(mal.status).toBe(400);
+    expect(JSON.stringify(mal.body)).toContain('fechaInicio');
+
+    const { body } = await api.crear(a, pub);
+    // La API ya no deja crearlo así: se simula una ficha guardada cuyo inicio ya pasó.
+    await prisma.publicacion.update({
+      where: { id: body.id },
+      data: { fechaInicio: new Date(`${enDias(-1)}T00:00:00Z`) },
+    });
+    expect((await api.editar(a, pub, body.id, { titulo: 'Nuevo título' })).status).toBe(200);
+    expect((await api.accion(a, pub, body.id, 'enviar')).status).toBe(200);
   });
 
   it('fechaFin: se guarda por PATCH y no puede ser anterior al inicio', async () => {

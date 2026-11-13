@@ -1,6 +1,6 @@
 import {
   CATALOGO,
-  fichaSchema,
+  fichaCompletaSchema,
   type EditarFichaInput,
   type FichaInput,
   type Modulo,
@@ -74,7 +74,7 @@ export const CAMPOS_PROGRESO = [
 
 /** Cuenta los campos de progreso válidos según el schema compartido (sin duplicar reglas). */
 export function progresoFicha(valores: Partial<FichaInput>): { completos: number; total: number } {
-  const r = fichaSchema.safeParse(valores);
+  const r = fichaCompletaSchema.safeParse(valores);
   const malos = new Set<PropertyKey>(r.success ? [] : r.error.issues.map((i) => i.path[0]!));
   return {
     completos: CAMPOS_PROGRESO.filter((c) => !malos.has(c)).length,

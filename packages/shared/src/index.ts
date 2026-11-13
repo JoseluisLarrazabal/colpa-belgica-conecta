@@ -4,3 +4,4 @@ export * from './dominio/permisos';
 export * from './schemas/funcionario';
 export * from './schemas/publicacion';
 export * from './dominio/publico';
+export * from './dominio/hoy';

@@ -1,6 +1,6 @@
 # Progreso por requerimiento funcional
 
-Generado el 2026-11-12 por `pnpm progreso`.
+Generado el 2026-11-13 por `pnpm progreso`.
 
 **Avance: 14/35 RF con al menos un test verde y ninguno fallido (40.0%).** Solo cuentan los tests de `apps/*`.
 
@@ -9,8 +9,8 @@ Generado el 2026-11-12 por `pnpm progreso`.
 | RF-01 | M01 | Iniciar sesión | Con test verde | 17 | 17 | — |
 | RF-02 | M01 | Gestionar cuentas de funcionarios | Con test verde | 12 | 12 | — |
 | RF-03 | M01 | Asignar rol a una cuenta | Con test verde | 7 | 7 | — |
-| RF-04 | M01 | Elaborar publicación con ficha estructurada | Con test verde | 11 | 11 | — |
-| RF-05 | M01 | Adjuntar imágenes a la publicación | Con test verde | 9 | 9 | — |
+| RF-04 | M01 | Elaborar publicación con ficha estructurada | Con test verde | 17 | 14 | 3 |
+| RF-05 | M01 | Adjuntar imágenes a la publicación | Con test verde | 14 | 9 | 5 |
 | RF-06 | M01 | Enviar publicación a revisión | Con test verde | 3 | 3 | — |
 | RF-07 | M01 | Publicar publicación revisada | Con test verde | 3 | 3 | — |
 | RF-08 | M01 | Devolver publicación con observaciones | Con test verde | 5 | 5 | — |

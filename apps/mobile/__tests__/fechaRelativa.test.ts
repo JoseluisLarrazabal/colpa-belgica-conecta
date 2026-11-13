@@ -1,4 +1,5 @@
-import { fechaRelativa, hoyLaPaz } from '../lib/fechas';
+import { hoyLaPaz } from '@colpa/shared';
+import { fechaRelativa } from '../lib/fechas';
 
 describe('RF-16 fecha relativa de Próximas actividades (America/La_Paz)', () => {
   // 2026-11-05T02:00Z = miércoles 4 de noviembre, 22:00 en La Paz (UTC-4)

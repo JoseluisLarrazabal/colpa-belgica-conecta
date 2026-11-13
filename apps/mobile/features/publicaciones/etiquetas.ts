@@ -23,3 +23,16 @@ export const ETIQUETA_TIPO: Record<TipoPublicacion, string> = {
 export const ETIQUETA_CAMPO: Record<string, string> = {
   tipoVacuna: 'Tipo de vacuna',
 };
+
+/** Texto de ayuda bajo cada campo (los extra se resuelven por nombre, igual que su rótulo). */
+export const AYUDA_CAMPO: Record<string, string> = {
+  titulo: 'Nombre corto de la actividad. Ejemplo: Vacunación contra la influenza.',
+  fechaInicio: 'Día en que empieza.',
+  fechaFin: 'Solo si dura más de un día.',
+  hora: 'Hora de inicio.',
+  lugar: 'Dónde se realiza. Ejemplo: Centro de salud.',
+  poblacionObjetivo: 'A quiénes va dirigido. Ejemplo: Niños menores de 5 años.',
+  requisitos: 'Qué debe llevar o cumplir la persona. Ejemplo: Carnet de vacunas.',
+  detalle: 'Explique con palabras sencillas qué se hará.',
+  tipoVacuna: 'Nombre de la vacuna. Ejemplo: Influenza.',
+};

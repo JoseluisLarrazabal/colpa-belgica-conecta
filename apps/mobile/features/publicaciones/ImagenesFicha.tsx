@@ -14,30 +14,48 @@ interface Props {
   /** undefined mientras la publicación aún no existe en el servidor. */
   publicacionId?: string;
   imagenes: ImagenDto[];
+  /** Devuelve el id de la ficha (creando el borrador si hace falta) o null si la ficha no es válida. */
+  asegurarBorrador?: () => Promise<string | null>;
+  /** Se llama con el id si el borrador se creó al añadir (tras subir o cancelar la galería). */
+  onBorradorCreado?: (id: string) => void;
 }
 
 /** RF-05: añade imágenes con subida firmada directa a Cloudinary y registro en la API. */
-export function ImagenesFicha({ publicacionId, imagenes }: Props) {
+export function ImagenesFicha({
+  publicacionId,
+  imagenes,
+  asegurarBorrador,
+  onBorradorCreado,
+}: Props) {
   const qc = useQueryClient();
   const [ocupado, setOcupado] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const [sinCloudinary, setSinCloudinary] = useState(false);
   const lleno = imagenes.length >= MAX_IMAGENES;
 
-  const refrescar = () => qc.invalidateQueries({ queryKey: ['publicacion', publicacionId] });
+  const refrescar = (id: string) => qc.invalidateQueries({ queryKey: ['publicacion', id] });
 
   async function anadir() {
-    if (!publicacionId) return;
     setOcupado(true);
     setAviso(null);
     try {
+      const id = publicacionId ?? (await asegurarBorrador?.());
+      if (!id) {
+        setAviso('Complete los campos marcados para poder añadir imágenes.');
+        return;
+      }
+      const nuevo = !publicacionId;
       // Se firma antes de elegir: si el servidor no tiene Cloudinary, se sabe sin molestar a la persona.
-      const firma = await pedirFirma(publicacionId);
+      const firma = await pedirFirma(id);
       const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
-      if (r.canceled || !r.assets[0]) return;
+      if (r.canceled || !r.assets[0]) {
+        if (nuevo) onBorradorCreado?.(id);
+        return;
+      }
       const subida = await subirACloudinary(firma, r.assets[0]);
-      await registrarImagen(publicacionId, subida);
-      await refrescar();
+      await registrarImagen(id, subida);
+      await refrescar(id);
+      if (nuevo) onBorradorCreado?.(id);
     } catch (e) {
       if (e instanceof ApiError && e.status === 503) setSinCloudinary(true);
       else setAviso(e instanceof Error ? e.message : 'No se pudo añadir la imagen');
@@ -50,18 +68,21 @@ export function ImagenesFicha({ publicacionId, imagenes }: Props) {
     if (!publicacionId) return;
     try {
       await eliminarImagen(publicacionId, img.id);
-      await refrescar();
+      await refrescar(publicacionId);
     } catch (e) {
       setAviso(e instanceof Error ? e.message : 'No se pudo quitar la imagen');
     }
   }
 
-  const motivo = !publicacionId
-    ? 'Guarde el borrador para poder añadir imágenes.'
-    : sinCloudinary
-      ? 'La carga de imágenes no está configurada en el servidor.'
-      : lleno
-        ? `Ya tiene el máximo de ${MAX_IMAGENES} imágenes.`
+  const bloqueado = (!publicacionId && !asegurarBorrador) || sinCloudinary || lleno;
+  const motivo = sinCloudinary
+    ? 'La carga de imágenes no está configurada en el servidor.'
+    : lleno
+      ? `Ya tiene el máximo de ${MAX_IMAGENES} imágenes.`
+      : !publicacionId
+        ? asegurarBorrador
+          ? 'Al añadir una imagen, la ficha se guarda como borrador.'
+          : 'Guarde el borrador para poder añadir imágenes.'
         : null;
 
   return (
@@ -91,10 +112,10 @@ export function ImagenesFicha({ publicacionId, imagenes }: Props) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Añadir imagen"
-          accessibilityState={{ disabled: !!motivo || ocupado }}
-          disabled={!!motivo || ocupado}
+          accessibilityState={{ disabled: bloqueado || ocupado }}
+          disabled={bloqueado || ocupado}
           onPress={() => void anadir()}
-          style={[s.mini, s.anadir, (!!motivo || ocupado) && s.off]}
+          style={[s.mini, s.anadir, (bloqueado || ocupado) && s.off]}
         >
           <MaterialCommunityIcons name="plus" size={24} color={colores.primary} />
           <Txt v="t14m" color={colores.primary}>

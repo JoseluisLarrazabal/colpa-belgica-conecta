@@ -1,7 +1,7 @@
 import {
   CAMPOS_EXTRA,
   camposExtra,
-  fichaSchema,
+  fichaCompletaSchema,
   puedeTransicionar,
   TRANSICIONES,
   type Accion,
@@ -60,7 +60,7 @@ const aColumnas = (f: FichaInput) => ({
 
 /** Valida la ficha completa; si falta algo, 400 con los campos faltantes (RF-04, RF-06). */
 function validarFicha(entrada: unknown): FichaInput {
-  const r = fichaSchema.safeParse(entrada);
+  const r = fichaCompletaSchema.safeParse(entrada);
   if (r.success) return r.data;
   throw new ErrorHttp(
     400,

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { TIPOS_DESTACABLES, type ListarPublicasInput } from '@colpa/shared';
+import { TIPOS_DESTACABLES, hoyLaPaz, type ListarPublicasInput } from '@colpa/shared';
 import { prisma } from '../db';
 import { ErrorHttp } from '../middleware/error';
 import type { Prisma } from '../generated/prisma/client';
@@ -28,11 +28,8 @@ const SELECT = {
 } satisfies Prisma.PublicacionSelect;
 type Fila = Prisma.PublicacionGetPayload<{ select: typeof SELECT }>;
 
-// shortcut: la zona del municipio queda fija (Bolivia, UTC-4 sin horario de verano); parametrizar si se atiende otra.
-const ZONA = 'America/La_Paz';
 /** Hoy en la zona del municipio, como valor `date` (medianoche UTC). */
-const hoy = () =>
-  new Date(`${new Date().toLocaleDateString('en-CA', { timeZone: ZONA })}T00:00:00Z`);
+const hoy = () => new Date(`${hoyLaPaz()}T00:00:00Z`);
 
 /**
  * Vigente (el documento no lo define): la actividad no terminó. Termina en `fechaFin` o, si no tiene, en `fechaInicio`.

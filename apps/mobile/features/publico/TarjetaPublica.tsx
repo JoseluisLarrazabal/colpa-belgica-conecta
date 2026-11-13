@@ -3,7 +3,7 @@ import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { Modulo, PublicacionPublicaDto } from '@colpa/shared';
 import { Txt } from '../../components/Txt';
-import { fechaLarga, fechaRelativa } from '../../lib/fechas';
+import { fechaLarga, fechaRelativa, hora12 } from '../../lib/fechas';
 import { RADIO, colores } from '../../theme';
 import { ETIQUETA_MODULO, ETIQUETA_TIPO } from '../publicaciones/etiquetas';
 
@@ -21,7 +21,11 @@ interface Props {
 }
 
 const cuando = (p: PublicacionPublicaDto, ahora?: Date) =>
-  [p.fechaInicio && fechaRelativa(p.fechaInicio, ahora, p.fechaFin), p.hora, p.lugar]
+  [
+    p.fechaInicio && fechaRelativa(p.fechaInicio, ahora, p.fechaFin),
+    p.hora && hora12(p.hora),
+    p.lugar,
+  ]
     .filter(Boolean)
     .join(' · ');
 

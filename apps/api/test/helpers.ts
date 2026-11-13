@@ -1,6 +1,6 @@
 import argon2 from 'argon2';
 import request from 'supertest';
-import type { Rol } from '@colpa/shared';
+import { hoyLaPaz, type Rol } from '@colpa/shared';
 import { crearApp } from '../src/app';
 import { prisma } from '../src/db';
 
@@ -49,12 +49,14 @@ export async function token(a: ReturnType<typeof app>, cuenta: string): Promise<
 }
 
 // ---- Publicaciones ----
+/** 'YYYY-MM-DD' de hoy (La Paz) + n días: la fecha de inicio no puede ser pasada. */
+export const enDias = (n: number) => hoyLaPaz(new Date(Date.now() + n * 86_400_000));
 export const FICHA = {
   modulo: 'SALUD',
   tipo: 'CAMPANA_VACUNACION',
   titulo: 'Campaña de vacunación contra la influenza',
   detalle: 'Vacunación gratuita en la plaza principal.',
-  fechaInicio: '2026-12-10',
+  fechaInicio: enDias(30),
   hora: '09:30',
   lugar: 'Plaza principal de Belgica',
   poblacionObjetivo: 'Adultos mayores de 60 años',
