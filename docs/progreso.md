@@ -10,7 +10,7 @@ Generado el 2026-11-13 por `pnpm progreso`.
 | RF-02 | M01 | Gestionar cuentas de funcionarios | Con test verde | 12 | 12 | — |
 | RF-03 | M01 | Asignar rol a una cuenta | Con test verde | 7 | 7 | — |
 | RF-04 | M01 | Elaborar publicación con ficha estructurada | Con test verde | 17 | 14 | 3 |
-| RF-05 | M01 | Adjuntar imágenes a la publicación | Con test verde | 12 | 9 | 3 |
+| RF-05 | M01 | Adjuntar imágenes a la publicación | Con test verde | 14 | 9 | 5 |
 | RF-06 | M01 | Enviar publicación a revisión | Con test verde | 3 | 3 | — |
 | RF-07 | M01 | Publicar publicación revisada | Con test verde | 3 | 3 | — |
 | RF-08 | M01 | Devolver publicación con observaciones | Con test verde | 5 | 5 | — |

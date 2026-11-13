@@ -19,7 +19,10 @@ jest.mock(
   'react-native-safe-area-context',
   () => jest.requireActual('react-native-safe-area-context/jest/mock').default,
 );
-jest.mock('expo-image-picker', () => ({}));
+const mockLaunch = jest.fn();
+jest.mock('expo-image-picker', () => ({
+  launchImageLibraryAsync: (...a: unknown[]) => mockLaunch(...a),
+}));
 jest.mock('@react-native-community/datetimepicker', () => ({
   DateTimePickerAndroid: { open: jest.fn() },
 }));
@@ -65,6 +68,7 @@ const COMPLETA = {
 beforeEach(() => {
   process.env.EXPO_PUBLIC_API_URL = 'http://localhost:3000';
   fetchMock.mockReset();
+  mockLaunch.mockReset();
   globalThis.fetch = fetchMock as unknown as typeof fetch;
 });
 
@@ -132,6 +136,49 @@ it('onCreada se llama al crear el borrador (bloquea módulo/tipo en nueva.tsx)',
     .mockReturnValue(json(500, { error: 'Falla' }));
   await fireEvent.press(screen.getByLabelText('Enviar a revisión'));
   await waitFor(() => expect(onCreada).toHaveBeenCalledTimes(1));
+});
+
+describe('RF-05: añadir imagen en una ficha nueva', () => {
+  const MSG_VACIA = 'Complete los campos marcados para poder añadir imágenes.';
+
+  it('con la ficha completa y el servidor caído muestra el error de red, no "Complete los campos"', async () => {
+    await montar('COMUNICADO_SANITARIO');
+    await llenar(COMPLETA);
+    // fetch que nunca responde; el plazo de api() (15 s) se acorta a 0 para que aborte y lance ApiError(0, 'La conexión tardó...')
+    const real = globalThis.setTimeout;
+    const espia = jest
+      .spyOn(globalThis, 'setTimeout')
+      .mockImplementation(((fn: () => void, ms?: number, ...a: unknown[]) =>
+        real(fn, ms === 15000 ? 0 : ms, ...a)) as unknown as typeof setTimeout);
+    try {
+      fetchMock.mockImplementation(
+        (_u: string, init: RequestInit) =>
+          new Promise((_ok, mal) =>
+            init.signal?.addEventListener('abort', () => mal(new Error('abort'))),
+          ),
+      );
+      await fireEvent.press(screen.getByLabelText('Añadir imagen'));
+      await waitFor(() =>
+        expect(
+          screen.getAllByText('La conexión tardó demasiado. Intente de nuevo.').length,
+        ).toBeGreaterThan(0),
+      );
+      expect(screen.queryByText(MSG_VACIA)).toBeNull();
+      expect(mockLaunch).not.toHaveBeenCalled();
+      const urls = fetchMock.mock.calls.map(([u]: [string]) => u);
+      expect(urls.some((u) => u.includes('firma'))).toBe(false);
+    } finally {
+      espia.mockRestore();
+    }
+  });
+
+  it('con la ficha vacía muestra "Complete los campos" y no llama al servidor', async () => {
+    await montar('COMUNICADO_SANITARIO');
+    await fireEvent.press(screen.getByLabelText('Añadir imagen'));
+    await waitFor(() => expect(screen.getByText(MSG_VACIA)).toBeTruthy());
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mockLaunch).not.toHaveBeenCalled();
+  });
 });
 
 describe('selector nativo de fecha (Android)', () => {
