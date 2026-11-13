@@ -82,7 +82,7 @@ describe('RF-16 Inicio muestra destacados', () => {
     await montar(<Inicio />);
     expect(await screen.findByText('Campaña destacada')).toBeTruthy();
     expect(await screen.findByText('Atención móvil')).toBeTruthy();
-    expect(screen.getByText(/Mañana · 09:00/)).toBeTruthy();
+    expect(screen.getByText(/Mañana · 9:00 a. m./)).toBeTruthy();
     expect(screen.getByText(/Actualizado/)).toBeTruthy();
     expect(screen.getByText('Acceso funcionarios')).toBeTruthy();
     expect(apiMock).toHaveBeenCalledWith('/publicaciones/destacadas', { autenticado: false });

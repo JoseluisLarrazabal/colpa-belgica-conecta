@@ -7,6 +7,7 @@ import {
   type TipoPublicacion,
 } from '../catalogo';
 import { ACCIONES, estadoSchema } from '../dominio/estados';
+import { hoyLaPaz } from '../dominio/hoy';
 
 // Longitudes = columnas de publicacion (Tabla 2.55).
 const texto = (max: number) => z.string().trim().min(1).max(max);
@@ -37,8 +38,13 @@ const variante = (tipo: TipoPublicacion) =>
 
 const TIPOS = Object.values(CATALOGO).flat();
 
-/** Ficha completa por tipo (unión discriminada por `tipo`); el tipo debe corresponder al módulo. */
-export const fichaSchema = z
+const MSG_INICIO_PASADO = 'La fecha de inicio no puede ser anterior a hoy';
+
+/**
+ * Ficha completa por tipo (unión discriminada por `tipo`); el tipo debe corresponder al módulo.
+ * Sin la regla de "inicio desde hoy": sirve para revalidar una ficha ya guardada (edición, envío a revisión).
+ */
+export const fichaCompletaSchema = z
   .discriminatedUnion('tipo', TIPOS.map(variante) as [ReturnType<typeof variante>])
   .superRefine((f, ctx) => {
     if (!tipoPerteneceAModulo(f.modulo, f.tipo)) {
@@ -59,7 +65,14 @@ export const fichaSchema = z
       });
     }
   });
-export type FichaInput = z.infer<typeof fichaSchema>;
+
+/** Ficha nueva: además, el inicio no puede ser anterior a hoy (La Paz). */
+export const fichaSchema = fichaCompletaSchema.superRefine((f, ctx) => {
+  if (f.fechaInicio < hoyLaPaz()) {
+    ctx.addIssue({ code: 'custom', path: ['fechaInicio'], message: MSG_INICIO_PASADO });
+  }
+});
+export type FichaInput = z.infer<typeof fichaCompletaSchema>;
 
 /** Campos extra de cada tipo (para rechazar en la edición los de otro tipo). */
 export const camposExtra = (tipo: string | null) =>
@@ -74,7 +87,11 @@ export const editarFichaSchema = z
   .object({ ...baseEditable, ...extrasTodos })
   .partial()
   .strict()
-  .refine((v) => Object.keys(v).length > 0, { message: 'Indica al menos un campo a modificar' });
+  .refine((v) => Object.keys(v).length > 0, { message: 'Indica al menos un campo a modificar' })
+  .refine((v) => !v.fechaInicio || v.fechaInicio >= hoyLaPaz(), {
+    path: ['fechaInicio'],
+    message: MSG_INICIO_PASADO,
+  });
 export type EditarFichaInput = z.infer<typeof editarFichaSchema>;
 
 const paginacion = {

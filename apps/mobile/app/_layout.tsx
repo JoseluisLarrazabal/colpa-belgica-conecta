@@ -11,6 +11,9 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
 });
 
+// expo-router ordena los grupos por largo del nombre: sin ancla, `(panel)` (login) queda primero en nativo.
+export const unstable_settings = { anchor: '(habitante)' };
+
 export default function RootLayout() {
   return (
     <SafeAreaProvider>

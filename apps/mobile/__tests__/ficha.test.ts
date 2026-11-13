@@ -2,13 +2,14 @@ import '../lib/zod-es';
 import { fichaSchema, type FichaInput } from '@colpa/shared';
 import { moduloDeTipo, parche, progresoFicha, vaciados } from '../features/publicaciones/ficha';
 import type { PublicacionDto } from '../features/publicaciones/tipos';
+import { enDias } from '../test-utils';
 
 const completa = {
   modulo: 'SALUD',
   tipo: 'CAMPANA_VACUNACION',
   titulo: 'Campaña de vacunación',
   detalle: 'Detalle',
-  fechaInicio: '2026-11-15',
+  fechaInicio: enDias(3),
   hora: '08:00',
   lugar: 'Posta de salud',
   poblacionObjetivo: 'Niñas y niños de 0 a 5 años',

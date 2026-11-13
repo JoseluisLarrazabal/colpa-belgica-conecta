@@ -8,7 +8,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   camposExtra,
   editarFichaSchema,
+  fichaCompletaSchema,
   fichaSchema,
+  hoyLaPaz,
   TIPOS_DESTACABLES,
   type FichaInput,
   type TipoPublicacion,
@@ -17,12 +19,13 @@ import { ApiError } from '../../lib/api';
 import { momento } from '../../lib/fechas';
 import { Boton } from '../../components/Boton';
 import { Campo } from '../../components/Campo';
+import { CampoSelector } from '../../components/CampoSelector';
 import { EstadoChip, estadoVisual } from '../../components/EstadoChip';
 import { CajaError } from '../../components/Estados';
 import { Pantalla } from '../../components/Pantalla';
 import { Txt } from '../../components/Txt';
 import { RADIO, colores } from '../../theme';
-import { ETIQUETA_CAMPO } from './etiquetas';
+import { AYUDA_CAMPO, ETIQUETA_CAMPO } from './etiquetas';
 import { MSG_VACIO_EDICION, moduloDeTipo, parche, progresoFicha, vaciados } from './ficha';
 import { useAccion, useCrear, useEditar } from './hooks';
 import { ImagenesFicha } from './ImagenesFicha';
@@ -91,7 +94,7 @@ export function FormPublicacion({ tipo, publicacion, selector, onCreada }: Props
   const [ocupado, setOcupado] = useState(false);
 
   const { control, handleSubmit, getValues, setError, reset } = useForm<FichaInput>({
-    resolver: zodResolver(fichaSchema) as never,
+    resolver: zodResolver(publicacion ? fichaCompletaSchema : fichaSchema) as never,
     defaultValues: valoresIniciales(tipo, publicacion) as never,
     mode: 'onTouched',
   });
@@ -109,7 +112,9 @@ export function FormPublicacion({ tipo, publicacion, selector, onCreada }: Props
     reset(nuevo as never);
   }, [tipo, publicacion, getValues, reset]);
 
-  const progreso = progresoFicha(useWatch({ control }) as Partial<FichaInput>);
+  const valores = useWatch({ control }) as Partial<FichaInput>;
+  const progreso = progresoFicha(valores);
+  const fechaInicio = String(valores.fechaInicio ?? '');
   const devuelta = publicacion?.estado === 'BORRADOR' && !!publicacion.observaciones;
 
   const campo = (
@@ -127,7 +132,32 @@ export function FormPublicacion({ tipo, publicacion, selector, onCreada }: Props
           onChangeText={field.onChange}
           onBlur={field.onBlur}
           error={fieldState.error?.message}
+          ayuda={AYUDA_CAMPO[name]}
           {...props}
+        />
+      )}
+    />
+  );
+
+  const selectorFecha = (
+    name: 'fechaInicio' | 'fechaFin' | 'hora',
+    rotulo: string,
+    minimo?: string,
+  ) => (
+    <Controller
+      control={control}
+      name={name}
+      render={({ field, fieldState }) => (
+        <CampoSelector
+          rotulo={rotulo}
+          modo={name === 'hora' ? 'time' : 'date'}
+          valor={String(field.value ?? '')}
+          onChange={field.onChange}
+          onBlur={field.onBlur}
+          minimo={minimo}
+          error={fieldState.error?.message}
+          ayuda={AYUDA_CAMPO[name]}
+          quitarRotulo={name === 'fechaFin' ? 'Quitar fecha de fin' : undefined}
         />
       )}
     />
@@ -155,6 +185,28 @@ export function FormPublicacion({ tipo, publicacion, selector, onCreada }: Props
     }
     const cambios = parche(v as unknown as Record<string, unknown>, base, extras);
     return Object.keys(cambios).length ? editar.mutateAsync(cambios) : base;
+  };
+
+  // Para añadir imágenes a una ficha nueva: valida (pinta errores), crea el borrador y devuelve su id.
+  // null = ficha inválida; si el servidor falla, el error se pinta y se propaga.
+  const asegurarBorrador = async (): Promise<string | null> => {
+    let id: string | null = null;
+    let fallo: unknown;
+    await handleSubmit(async (v) => {
+      setOcupado(true);
+      setErrorForm(null);
+      try {
+        id = (await persistir(v)).id;
+        setGuardado(new Date());
+      } catch (e) {
+        setErrorForm(aplicarErrores(e, setError));
+        fallo = e;
+      } finally {
+        setOcupado(false);
+      }
+    })();
+    if (fallo) throw fallo;
+    return id;
   };
 
   const guardarBorrador = async () => {
@@ -271,24 +323,9 @@ export function FormPublicacion({ tipo, publicacion, selector, onCreada }: Props
         {selector}
 
         {campo('titulo', 'Título', { maxLength: 150 })}
-        <View style={s.dos}>
-          <View style={s.mitad}>
-            {campo('fechaInicio', 'Fecha', {
-              placeholder: 'AAAA-MM-DD',
-              keyboardType: 'numbers-and-punctuation',
-            })}
-          </View>
-          <View style={s.mitad}>
-            {campo('fechaFin', 'Fecha de fin (opcional)', {
-              placeholder: 'AAAA-MM-DD',
-              keyboardType: 'numbers-and-punctuation',
-            })}
-          </View>
-        </View>
-        {campo('hora', 'Hora', {
-          placeholder: 'HH:MM',
-          keyboardType: 'numbers-and-punctuation',
-        })}
+        {selectorFecha('fechaInicio', 'Fecha de inicio', hoyLaPaz())}
+        {selectorFecha('fechaFin', 'Fecha de fin (opcional)', fechaInicio || hoyLaPaz())}
+        {selectorFecha('hora', 'Hora')}
         {campo('lugar', 'Lugar', { maxLength: 150 })}
         {campo('poblacionObjetivo', 'Público objetivo', { maxLength: 150 })}
         {campo('requisitos', 'Requisitos', { multiline: true })}
@@ -316,7 +353,14 @@ export function FormPublicacion({ tipo, publicacion, selector, onCreada }: Props
           />
         )}
 
-        <ImagenesFicha publicacionId={publicacion?.id} imagenes={publicacion?.imagenes ?? []} />
+        <ImagenesFicha
+          publicacionId={publicacion?.id}
+          imagenes={publicacion?.imagenes ?? []}
+          asegurarBorrador={publicacion ? undefined : asegurarBorrador}
+          onBorradorCreado={(id) =>
+            router.replace({ pathname: '/(panel)/publicaciones/[id]', params: { id } })
+          }
+        />
 
         {guardado && !errorForm && (
           <View style={s.guardado} accessibilityRole="alert">
@@ -353,8 +397,6 @@ const s = StyleSheet.create({
   segs: { flexDirection: 'row', gap: 4, marginTop: 6 },
   seg: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colores.primaryContainer },
   segOn: { backgroundColor: colores.primary },
-  dos: { flexDirection: 'row', gap: 8 },
-  mitad: { flex: 1 },
   guardado: { ...caja, borderColor: colores.success },
   destacar: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, marginTop: 12 },
   acciones: { flexDirection: 'row', gap: 8 },

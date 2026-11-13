@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { fechaLarga } from '../lib/fechas';
+import { fechaLarga, hora12 } from '../lib/fechas';
 import { colores } from '../theme';
 import { Txt } from './Txt';
 
@@ -22,7 +22,7 @@ export function FichaLista({ ficha }: { ficha: DatosFicha }) {
     : null;
   const filas = [
     { icono: 'calendar', rotulo: 'Fecha', valor: fecha },
-    { icono: 'clock-outline', rotulo: 'Hora', valor: ficha.hora },
+    { icono: 'clock-outline', rotulo: 'Hora', valor: ficha.hora && hora12(ficha.hora) },
     { icono: 'map-marker', rotulo: 'Lugar', valor: ficha.lugar },
     { icono: 'account-group', rotulo: 'Público objetivo', valor: ficha.poblacionObjetivo },
     { icono: 'format-list-bulleted', rotulo: 'Requisitos', valor: ficha.requisitos },

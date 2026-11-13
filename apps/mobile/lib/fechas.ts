@@ -1,3 +1,5 @@
+import { hoyLaPaz } from '@colpa/shared';
+
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 const MESES = [
   'enero',
@@ -41,12 +43,6 @@ export function momento(fecha: Date | string, ahora: Date = new Date()): string 
 
 const DIAS_CORTOS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 const MS_DIA = 86_400_000;
-// shortcut: America/La_Paz fija en UTC-4 (Bolivia no tiene horario de verano), igual que la API; parametrizar si se atiende otra zona.
-const OFFSET_LA_PAZ_MS = -4 * 3_600_000;
-
-/** Día calendario en La Paz de un instante, como 'YYYY-MM-DD'. */
-export const hoyLaPaz = (ahora: Date = new Date()) =>
-  new Date(ahora.getTime() + OFFSET_LA_PAZ_MS).toISOString().slice(0, 10);
 
 /**
  * 'YYYY-MM-DD' -> 'Hoy' | 'Mañana' | 'En 3 días' (hasta 6) | 'Sáb 15 nov'.
@@ -65,4 +61,32 @@ export function fechaRelativa(
   const [a, m, d] = inicio.split('-').map(Number) as [number, number, number];
   const dia = DIAS_CORTOS[new Date(Date.UTC(a, m - 1, d)).getUTCDay()]!;
   return `${dia[0]!.toUpperCase()}${dia.slice(1)} ${d} ${MESES[m - 1]!.slice(0, 3)}`;
+}
+
+// Conversiones con componentes LOCALES: toISOString() correría un día en La Paz (UTC-4).
+/** 'YYYY-MM-DD' -> Date local a medianoche. */
+export function fechaADate(iso: string): Date {
+  const [a, m, d] = iso.split('-').map(Number) as [number, number, number];
+  return new Date(a, m - 1, d);
+}
+
+/** Date local -> 'YYYY-MM-DD'. */
+export const dateAFecha = (d: Date) =>
+  `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}`;
+
+/** 'HH:MM' -> Date local de hoy a esa hora (valor inicial del selector). */
+export function horaADate(hhmm: string): Date {
+  const [h, m] = hhmm.split(':').map(Number) as [number, number];
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+/** Date local -> 'HH:MM'. */
+export const dateAHora = (d: Date) => `${dos(d.getHours())}:${dos(d.getMinutes())}`;
+
+/** 'HH:MM' (24 h) -> '2:30 p. m.' (sin Intl: Hermes no garantiza el locale es). */
+export function hora12(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number) as [number, number];
+  return `${h % 12 || 12}:${dos(m)} ${h < 12 ? 'a. m.' : 'p. m.'}`;
 }

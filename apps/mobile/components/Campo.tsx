@@ -1,4 +1,5 @@
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import type { ReactNode } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { OBJETIVO_TACTIL, RADIO, colores, tipo } from '../theme';
 import { Txt } from './Txt';
@@ -7,25 +8,29 @@ interface Props extends Omit<TextInputProps, 'style'> {
   rotulo: string;
   error?: string;
   ayuda?: string;
+  /** Sustituye a la entrada de texto (selectores); rótulo, error y ayuda se mantienen. */
+  children?: ReactNode;
 }
 
 /** Campo del diseño C: rótulo 14 sp, entrada ≥48 dp, error con borde 2 dp + icono + texto. */
-export function Campo({ rotulo, error, ayuda, multiline, ...rest }: Props) {
+export function Campo({ rotulo, error, ayuda, multiline, children, ...rest }: Props) {
   return (
     <View style={s.campo}>
       <Txt v="t14m" color={error ? colores.error : colores.onSurfaceVariant} style={s.rotulo}>
         {rotulo}
       </Txt>
-      <TextInput
-        allowFontScaling
-        accessibilityLabel={rotulo}
-        accessibilityHint={error ?? ayuda}
-        placeholderTextColor={colores.onSurfaceVariant}
-        multiline={multiline}
-        textAlignVertical={multiline ? 'top' : 'center'}
-        style={[s.entrada, multiline && s.multi, !!error && s.entradaError]}
-        {...rest}
-      />
+      {children ?? (
+        <TextInput
+          allowFontScaling
+          accessibilityLabel={rotulo}
+          accessibilityHint={error ?? ayuda}
+          placeholderTextColor={colores.onSurfaceVariant}
+          multiline={multiline}
+          textAlignVertical={multiline ? 'top' : 'center'}
+          style={[s.entrada, multiline && s.multi, !!error && s.entradaError]}
+          {...rest}
+        />
+      )}
       {error ? (
         <View style={s.ayuda} accessibilityRole="alert">
           <MaterialCommunityIcons name="alert-circle" size={20} color={colores.error} />
@@ -67,3 +72,6 @@ const s = StyleSheet.create({
   ayudaTexto: { flex: 1 },
   ayudaSola: { marginTop: 4 },
 });
+
+export const estiloEntrada = s.entrada;
+export const estiloEntradaError = s.entradaError;

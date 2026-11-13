@@ -26,7 +26,8 @@
       "expo-status-bar",
       "expo-secure-store",
       "expo-font",
-      ["expo-image-picker", { "photosPermission": "Para adjuntar imágenes a las publicaciones." }]
+      ["expo-image-picker", { "photosPermission": "Para adjuntar imágenes a las publicaciones." }],
+      "@react-native-community/datetimepicker"
     ],
     "scheme": "colpabelgica"
   }
