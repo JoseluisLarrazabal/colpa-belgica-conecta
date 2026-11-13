@@ -17,6 +17,7 @@ export default function PanelLayout() {
         <Stack.Screen name="publicaciones/nueva" />
         <Stack.Screen name="publicaciones/[id]" />
         <Stack.Screen name="revision/index" />
+        <Stack.Screen name="revision/publicadas" />
         <Stack.Screen name="revision/[id]" />
       </Stack.Protected>
     </Stack>

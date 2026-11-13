@@ -111,6 +111,12 @@ function PanelAprobador() {
         icono="clipboard-check-outline"
         onPress={() => router.push('/(panel)/revision')}
       />
+      <Boton
+        texto="Publicadas"
+        variante="borde"
+        icono="archive-outline"
+        onPress={() => router.push('/(panel)/revision/publicadas')}
+      />
     </View>
   );
 }

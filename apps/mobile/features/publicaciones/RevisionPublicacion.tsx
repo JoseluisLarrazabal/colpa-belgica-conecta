@@ -27,6 +27,7 @@ export function RevisionPublicacion({ p }: { p: PublicacionDto }) {
   const archivar = useAccion('ARCHIVAR');
   const ocupado = publicar.isPending || devolver.isPending || archivar.isPending;
   const [pidiendoObs, setPidiendoObs] = useState(false);
+  const [confirmandoArchivo, setConfirmandoArchivo] = useState(false);
   const [obs, setObs] = useState('');
   const [errorObs, setErrorObs] = useState<string | undefined>();
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
@@ -39,7 +40,7 @@ export function RevisionPublicacion({ p }: { p: PublicacionDto }) {
     setErrorGeneral(null);
     try {
       await m.mutateAsync({ id: p.id, ...(a === 'DEVOLVER' && { observaciones: extra }) });
-      router.dismissTo('/(panel)/revision');
+      router.dismissTo(a === 'ARCHIVAR' ? '/(panel)/revision/publicadas' : '/(panel)/revision');
     } catch (e) {
       setErrorGeneral(e instanceof ApiError ? e.message : 'No se pudo completar la operación');
     }
@@ -76,17 +77,43 @@ export function RevisionPublicacion({ p }: { p: PublicacionDto }) {
         />
       </>
     ) : p.estado === 'PUBLICADO' ? (
-      <Boton
-        texto="Archivar"
-        variante="borde"
-        icono="archive-outline"
-        onPress={() => void correr(archivar, 'ARCHIVAR')}
-        cargando={archivar.isPending}
-        deshabilitado={ocupado}
-      />
+      confirmandoArchivo ? (
+        <>
+          <View style={s.nota} accessibilityRole="alert">
+            <MaterialCommunityIcons name="alert-outline" size={20} color={colores.warning} />
+            <Txt v="t14" style={s.notaTexto}>
+              Los habitantes dejarán de ver esta publicación. No se puede deshacer.
+            </Txt>
+          </View>
+          <Boton
+            texto="Confirmar archivo"
+            icono="archive-outline"
+            onPress={() => void correr(archivar, 'ARCHIVAR')}
+            cargando={archivar.isPending}
+            deshabilitado={ocupado}
+          />
+          <Boton
+            texto="Cancelar"
+            variante="borde"
+            onPress={() => setConfirmandoArchivo(false)}
+            deshabilitado={ocupado}
+          />
+        </>
+      ) : (
+        <Boton
+          texto="Archivar"
+          variante="borde"
+          icono="archive-outline"
+          onPress={() => setConfirmandoArchivo(true)}
+        />
+      )
     ) : null;
   return (
-    <Pantalla titulo="Revisar publicación" atras acciones={acciones}>
+    <Pantalla
+      titulo={p.estado === 'PUBLICADO' ? 'Publicación publicada' : 'Revisar publicación'}
+      atras
+      acciones={acciones}
+    >
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         <View style={s.encabezado}>
           <EstadoChip estado={estadoVisual(p)} />

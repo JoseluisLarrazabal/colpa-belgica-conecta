@@ -1,5 +1,5 @@
 import '../lib/zod-es';
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PaperProvider } from 'react-native-paper';
 import { RevisionPublicacion } from '../features/publicaciones/RevisionPublicacion';
@@ -63,4 +63,44 @@ it('muestra "Destacado en Inicio" solo si la publicación es destacada', async (
   await unmount();
   await montar(pub());
   expect(screen.queryByText('Destacado en Inicio')).toBeNull();
+});
+
+describe('RF-09 archivar publicación', () => {
+  const fetchMock = jest.fn();
+  beforeEach(() => {
+    process.env.EXPO_PUBLIC_API_URL = 'http://localhost:3000';
+    fetchMock.mockReset().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+      text: async () => '{}',
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+  });
+  const publicada = () => montar(pub({ estado: 'PUBLICADO' }));
+  const aviso = 'Los habitantes dejarán de ver esta publicación. No se puede deshacer.';
+
+  it('RF-09: tocar "Archivar" pide confirmación y no llama a la API', async () => {
+    await publicada();
+    await fireEvent.press(screen.getByText('Archivar'));
+    expect(screen.getByText(aviso)).toBeTruthy();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('RF-09: "Cancelar" quita el aviso', async () => {
+    await publicada();
+    await fireEvent.press(screen.getByText('Archivar'));
+    await fireEvent.press(screen.getByText('Cancelar'));
+    expect(screen.queryByText(aviso)).toBeNull();
+    expect(screen.getByText('Archivar')).toBeTruthy();
+  });
+
+  it('RF-09: "Confirmar archivo" llama a POST archivar una vez', async () => {
+    await publicada();
+    await fireEvent.press(screen.getByText('Archivar'));
+    await fireEvent.press(screen.getByText('Confirmar archivo'));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(String(fetchMock.mock.calls[0][0])).toMatch(/\/panel\/publicaciones\/p1\/archivar$/);
+    expect(fetchMock.mock.calls[0][1].method).toBe('POST');
+  });
 });
